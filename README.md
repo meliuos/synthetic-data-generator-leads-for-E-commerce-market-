@@ -20,11 +20,19 @@ Phase 1 bootstraps the local event backbone:
    ```bash
    make up
    ```
+4. Apply ClickHouse schema:
+   ```bash
+   make schema
+   ```
 4. Verify containers are healthy:
    ```bash
    make ps
    ```
-5. Stop the stack when done:
+5. Verify ingestion tables:
+   ```bash
+   docker compose exec -T clickhouse clickhouse-client --query "SHOW TABLES FROM analytics"
+   ```
+6. Stop the stack when done:
    ```bash
    make down
    ```
@@ -39,5 +47,6 @@ Phase 1 bootstraps the local event backbone:
 
 ## Notes
 
-- ClickHouse async inserts are enabled in `infra/clickhouse/config.d/async_insert.xml`.
+- ClickHouse async inserts are enabled in `infra/clickhouse/users.d/async_insert.xml`.
 - RudderStack file-based config is in `infra/rudderstack/workspaceConfig.json` and forwards events to topic `lead-events`.
+- ClickHouse ingestion schema is defined in `infra/clickhouse/sql/001_events_schema.sql` and creates `events_queue`, `events_mv`, and `click_events`.
