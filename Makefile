@@ -19,3 +19,6 @@ ps:
 
 schema:
 	bash scripts/apply-schema.sh
+
+smoke-test:
+	bash scripts/smoke-test.sh
