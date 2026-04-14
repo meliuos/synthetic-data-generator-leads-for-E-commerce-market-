@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Runtime data
+.tmp/
+.data/
+
+# Editor
+.DS_Store
+.vscode/
+
+# Docker override env
+.env
