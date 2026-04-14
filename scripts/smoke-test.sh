@@ -9,38 +9,14 @@ SESSION_ID="smoke-$(date +%s)"
 EVENT_ID="evt-$SESSION_ID"
 EVENT_TIME=$(date -u +"%Y-%m-%d %H:%M:%S.%3N")
 
-JSON_PAYLOAD=$(cat <<EOF
-{
-  "records": [
-    {
-      "value": {
-        "event_id": "$EVENT_ID",
-        "event_time": "$EVENT_TIME",
-        "event_type": "click",
-        "page_url": "https://example.com/product/42",
-        "referrer": "https://example.com/",
-        "x_pct": 42.5,
-        "y_pct": 63.1,
-        "scroll_pct": 75.0,
-        "element_selector": "button.buy-now",
-        "element_tag": "button",
-        "device_type": "desktop",
-        "viewport_width": 1440,
-        "viewport_height": 900,
-        "session_id": "$SESSION_ID",
-        "anonymous_user_id": "anon_hash_123",
-        "event_payload": "{\"source\":\"smoke-test\"}"
-      }
-    }
-  ]
-}
+EVENT_JSON=$(cat <<EOF
+{"event_id":"$EVENT_ID","event_time":"$EVENT_TIME","event_type":"click","page_url":"https://example.com/product/42","referrer":"https://example.com/","x_pct":42.5,"y_pct":63.1,"scroll_pct":75.0,"element_selector":"button.buy-now","element_tag":"button","device_type":"desktop","viewport_width":1440,"viewport_height":900,"session_id":"$SESSION_ID","anonymous_user_id":"anon_hash_123","event_payload":"{\\"source\\":\\"smoke-test\\"}"}
 EOF
 )
 
 echo "Producing smoke test event to topic: $TOPIC"
-curl -sS -X POST "http://localhost:8082/topics/$TOPIC" \
-  -H "Content-Type: application/vnd.kafka.json.v2+json" \
-  -d "$JSON_PAYLOAD" >/dev/null
+$COMPOSE exec -T redpanda rpk topic create "$TOPIC" -p 1 -r 1 >/dev/null 2>&1 || true
+printf '%s\n' "$EVENT_JSON" | $COMPOSE exec -T redpanda rpk topic produce "$TOPIC" -f '%v\n' >/dev/null
 
 deadline=$((SECONDS + 5))
 row_count=0
