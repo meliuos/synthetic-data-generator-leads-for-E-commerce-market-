@@ -1,0 +1,117 @@
+services:
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.1.10
+    command:
+      - redpanda
+      - start
+      - --overprovisioned
+      - --smp
+      - "1"
+      - --memory
+      - 1G
+      - --reserve-memory
+      - 0M
+      - --node-id
+      - "0"
+      - --check=false
+      - --kafka-addr
+      - PLAINTEXT://0.0.0.0:9092,OUTSIDE://0.0.0.0:19092
+      - --advertise-kafka-addr
+      - PLAINTEXT://redpanda:9092,OUTSIDE://localhost:19092
+      - --pandaproxy-addr
+      - PLAINTEXT://0.0.0.0:8082
+      - --advertise-pandaproxy-addr
+      - PLAINTEXT://redpanda:8082
+    ports:
+      - "19092:19092"
+      - "8082:8082"
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health --exit-when-healthy --brokers=localhost:9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-analytics}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-analytics}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-analytics_password}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    volumes:
+      - ./infra/clickhouse/config.d/async_insert.xml:/etc/clickhouse-server/config.d/async_insert.xml:ro
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  rudder-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: rudder
+      POSTGRES_PASSWORD: rudder
+      POSTGRES_DB: rudder
+    volumes:
+      - ./.data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rudder -d rudder"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  rudderstack:
+    image: rudderlabs/rudder-server:latest
+    depends_on:
+      rudder-postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    environment:
+      DB_HOST: rudder-postgres
+      DB_PORT: "5432"
+      DB_USER: rudder
+      DB_PASSWORD: rudder
+      DB_NAME: rudder
+      JOBS_DB_HOST: rudder-postgres
+      JOBS_DB_PORT: "5432"
+      JOBS_DB_USER: rudder
+      JOBS_DB_PASSWORD: rudder
+      JOBS_DB_DB_NAME: rudder
+      INSTANCE_ID: dev-rudder
+      RSERVER_LOG_LEVEL: INFO
+      RSERVER_BACKEND_CONFIG_CONFIG_FROM_FILE: "true"
+      RSERVER_BACKEND_CONFIG_CONFIG_JSONPATH: /etc/rudderstack/workspaceConfig.json
+    volumes:
+      - ./infra/rudderstack/workspaceConfig.json:/etc/rudderstack/workspaceConfig.json:ro
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+
+  streamlit:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    environment:
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: "8123"
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-analytics}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-analytics}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-analytics_password}
+    ports:
+      - "8501:8501"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8501/_stcore/health >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20

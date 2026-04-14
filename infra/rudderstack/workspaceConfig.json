@@ -1,0 +1,32 @@
+{
+  "workspaceId": "dev_workspace",
+  "sources": [
+    {
+      "id": "src_web_1",
+      "name": "web-tracker",
+      "enabled": true,
+      "writeKey": "dev_write_key",
+      "sourceDefinition": {
+        "name": "JavaScript"
+      },
+      "destinations": [
+        {
+          "id": "dst_kafka_1",
+          "name": "redpanda-kafka",
+          "enabled": true,
+          "isProcessorEnabled": true,
+          "destinationDefinition": {
+            "name": "KAFKA"
+          },
+          "config": {
+            "topic": "lead-events",
+            "hostName": "redpanda",
+            "port": "9092",
+            "useSSL": false,
+            "useSASL": false
+          }
+        }
+      ]
+    }
+  ]
+}
