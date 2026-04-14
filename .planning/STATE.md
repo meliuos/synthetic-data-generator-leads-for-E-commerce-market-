@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-04-15)
 ## Current Position
 
 Phase: 1 of 5 (Streaming and Storage Backbone)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-04-15 — Completed 01-01-PLAN.md
+Last activity: 2026-04-15 — Completed 01-02-PLAN.md
 
-Progress: [█░░░░░░░░░] 6%
+Progress: [██░░░░░░░░] 12%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 1 min
-- Total execution time: 1 min
+- Total plans completed: 2
+- Average duration: 10.5 min
+- Total execution time: 21 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1 | 1 | 1 min | 1 min |
+| 1 | 2 | 21 min | 10.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (1 min)
-- Trend: stable
+- Last 5 plans: 01-01 (1 min), 01-02 (20 min)
+- Trend: variable
 
 *Updated after each plan completion*
 
@@ -47,6 +47,8 @@ Recent decisions affecting current work:
 - Roadmap: ClickHouse async_insert must be configured at Phase 1 schema design time to avoid insert hammering
 - 01-01: Use file-based RudderStack backend config to keep local setup deterministic and control-plane independent
 - 01-01: Include RudderStack Postgres service in compose so bootstrap has no hidden local prerequisites
+- 01-02: ClickHouse async_insert must live under users profile config (users.d), not top-level config.d
+- 01-02: Schema verification baseline includes sorting_key introspection via system.tables
 
 ### Pending Todos
 
@@ -59,6 +61,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-14 23:29:51Z
-Stopped at: Completed 01-01-PLAN.md
+Last session: 2026-04-14 23:55:51Z
+Stopped at: Completed 01-02-PLAN.md
 Resume file: None
