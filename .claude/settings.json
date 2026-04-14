@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Read(//home/mootez/.claude/agents/**)",
+      "Read(//home/mootez/.claude/get-shit-done/templates/research-project/**)",
+      "WebFetch(domain:www.rudderstack.com)",
+      "WebFetch(domain:oneuptime.com)",
+      "WebFetch(domain:quix.io)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:posthog.com)",
+      "WebFetch(domain:clarity.microsoft.com)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:clickhouse.com)",
+      "WebFetch(domain:docs.redpanda.com)",
+      "WebFetch(domain:tributarydata.substack.com)",
+      "WebFetch(domain:www.fullstory.com)",
+      "WebFetch(domain:www.fullsession.io)",
+      "WebFetch(domain:pypi.org)"
+    ]
+  }
+}
