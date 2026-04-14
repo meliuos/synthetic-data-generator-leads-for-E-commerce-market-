@@ -32,7 +32,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: TBD
 
 Plans:
-- [ ] 01-01: Docker Compose stack (Redpanda + ClickHouse + RudderStack data plane)
+- [x] 01-01: Docker Compose stack (Redpanda + ClickHouse + RudderStack data plane)
 - [ ] 01-02: ClickHouse 3-table schema (Kafka queue + Materialized View + MergeTree target)
 - [ ] 01-03: End-to-end smoke test (manual produce → row in MergeTree)
 
@@ -110,7 +110,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Streaming and Storage Backbone | 0/3 | Not started | - |
+| 1. Streaming and Storage Backbone | 1/3 | In progress | 01-01 |
 | 2. JS Tracker and Event Ingestion Pipeline | 0/4 | Not started | - |
 | 3. Screenshot Capture Service | 0/2 | Not started | - |
 | 4. Heatmap Computation and Core Dashboard | 0/4 | Not started | - |
