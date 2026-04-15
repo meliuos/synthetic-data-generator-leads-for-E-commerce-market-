@@ -7,6 +7,7 @@ import pandas as pd
 import requests
 import streamlit as st
 
+from heatmap_filters import normalize_url_filter
 from heatmap_plotly import build_heatmap_overlay_figure
 from heatmap_queries import fetch_heatmap_aggregates_for
 
@@ -37,6 +38,12 @@ PAGE_URLS = [
 VIEWPORTS = {
     "Desktop (1440px)": (1440, 900),
     "Mobile (390px)": (390, 844),
+}
+
+HEATMAP_MODES = {
+    "Click": "click",
+    "Scroll": "scroll",
+    "Hover": "mousemove",
 }
 
 def capture_screenshot(url: str) -> dict:
@@ -79,8 +86,13 @@ def get_clickhouse_client():
         return None
 
 
-def load_heatmap_dataframe(url_filter: str, viewport_width: int, viewport_height: int):
-    """Fetch pre-binned click heatmap data for the selected page."""
+def load_heatmap_dataframe(
+    url_filter: str,
+    event_type: str,
+    viewport_width: int,
+    viewport_height: int,
+):
+    """Fetch pre-binned heatmap data for the selected page and mode."""
     client = get_clickhouse_client()
     if client is None:
         return pd.DataFrame(columns=["x_bin_pct", "y_bin_pct", "event_count"])
@@ -89,12 +101,12 @@ def load_heatmap_dataframe(url_filter: str, viewport_width: int, viewport_height
         return fetch_heatmap_aggregates_for(
             client,
             url_filter=url_filter,
-            event_type="click",
+            event_type=event_type,
             viewport_width=viewport_width,
             viewport_height=viewport_height,
         )
     except Exception as exc:
-        st.error(f"Failed to load click heatmap data: {exc}")
+        st.error(f"Failed to load heatmap data: {exc}")
         return pd.DataFrame(columns=["x_bin_pct", "y_bin_pct", "event_count"])
 
 
@@ -103,6 +115,9 @@ def render_heatmap_tab(
     viewport_label: str,
     viewport_width: int,
     viewport_height: int,
+    url_filter: str,
+    event_type: str,
+    mode_label: str,
 ) -> None:
     """Render one viewport tab with the screenshot-backed heatmap overlay."""
     url_hash = hashlib.sha256(selected_url.encode()).hexdigest()[:12]
@@ -112,9 +127,9 @@ def render_heatmap_tab(
         st.info(f"{viewport_label}: click 'Refresh Screenshot' to capture this view")
         return
 
-    dataframe = load_heatmap_dataframe(selected_url, viewport_width, viewport_height)
+    dataframe = load_heatmap_dataframe(url_filter, event_type, viewport_width, viewport_height)
     if getattr(dataframe, "empty", True):
-        st.caption(f"{viewport_label}: no click events found yet; showing the screenshot canvas")
+        st.caption(f"{viewport_label}: no {mode_label.lower()} events found yet; showing the screenshot canvas")
 
     try:
         figure = build_heatmap_overlay_figure(
@@ -122,7 +137,7 @@ def render_heatmap_tab(
             dataframe,
             viewport_width,
             viewport_height,
-            title=f"{viewport_label} click heatmap",
+            title=f"{viewport_label} {mode_label.lower()} heatmap",
         )
         st.plotly_chart(figure, use_container_width=True)
     except Exception as exc:
@@ -133,6 +148,15 @@ st.subheader("📸 Page Screenshot Viewer")
 
 # URL selection
 selected_url = st.selectbox("Select page to view:", PAGE_URLS, index=0)
+wildcard_filter = st.text_input(
+    "Optional wildcard scope",
+    value="",
+    placeholder="/product/*",
+    help="Leave blank to query only the selected page, or use * to scope a family of pages.",
+)
+selected_mode_label = st.radio("Heatmap mode", list(HEATMAP_MODES.keys()), horizontal=True)
+selected_event_type = HEATMAP_MODES[selected_mode_label]
+active_url_filter = normalize_url_filter(selected_url, wildcard_filter)
 
 # Refresh button
 col1, col2 = st.columns([1, 3])
@@ -162,11 +186,27 @@ try:
 
     with desktop_tab:
         desktop_width, desktop_height = VIEWPORTS["Desktop (1440px)"]
-        render_heatmap_tab(selected_url, "Desktop (1440px)", desktop_width, desktop_height)
+        render_heatmap_tab(
+            selected_url,
+            "Desktop (1440px)",
+            desktop_width,
+            desktop_height,
+            active_url_filter,
+            selected_event_type,
+            selected_mode_label,
+        )
 
     with mobile_tab:
         mobile_width, mobile_height = VIEWPORTS["Mobile (390px)"]
-        render_heatmap_tab(selected_url, "Mobile (390px)", mobile_width, mobile_height)
+        render_heatmap_tab(
+            selected_url,
+            "Mobile (390px)",
+            mobile_width,
+            mobile_height,
+            active_url_filter,
+            selected_event_type,
+            selected_mode_label,
+        )
             
 except Exception as e:
     st.error(f"Failed to load screenshots: {e}")
