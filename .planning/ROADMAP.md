@@ -12,7 +12,7 @@ Five phases build from infrastructure upward: the streaming and storage backbone
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Streaming and Storage Backbone** - Redpanda + ClickHouse running locally, 3-table schema locked, ORDER BY finalized
+- [x] **Phase 1: Streaming and Storage Backbone** - Redpanda + ClickHouse running locally, 3-table schema locked, ORDER BY finalized
 - [ ] **Phase 2: JS Tracker and Event Ingestion Pipeline** - Browser snippet captures events, RudderStack routes them, rows appear in ClickHouse within seconds
 - [ ] **Phase 3: Screenshot Capture Service** - Playwright service captures full-page screenshots at desktop and mobile viewports, stored on disk
 - [ ] **Phase 4: Heatmap Computation and Core Dashboard** - Streamlit dashboard renders click/scroll/hover heatmaps as Plotly overlays on screenshots with URL filter and type switcher
@@ -34,7 +34,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 - [x] 01-01: Docker Compose stack (Redpanda + ClickHouse + RudderStack data plane)
 - [x] 01-02: ClickHouse 3-table schema (Kafka queue + Materialized View + MergeTree target)
-- [ ] 01-03: End-to-end smoke test (manual produce → row in MergeTree)
+- [x] 01-03: End-to-end smoke test (manual produce → row in MergeTree)
 
 ### Phase 2: JS Tracker and Event Ingestion Pipeline
 **Goal**: A JavaScript snippet embedded in any page captures all required event types with correct document-relative coordinates and GDPR consent gating, and delivers them into ClickHouse through RudderStack and Redpanda.
@@ -110,7 +110,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Streaming and Storage Backbone | 2/3 | In progress | 01-01, 01-02 |
+| 1. Streaming and Storage Backbone | 3/3 | Complete | 01-01, 01-02, 01-03 |
 | 2. JS Tracker and Event Ingestion Pipeline | 0/4 | Not started | - |
 | 3. Screenshot Capture Service | 0/2 | Not started | - |
 | 4. Heatmap Computation and Core Dashboard | 0/4 | Not started | - |

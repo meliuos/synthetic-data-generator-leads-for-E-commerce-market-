@@ -9,29 +9,29 @@ See: .planning/PROJECT.md (updated 2026-04-15)
 
 ## Current Position
 
-Phase: 1 of 5 (Streaming and Storage Backbone)
-Plan: 2 of 3 in current phase
-Status: In progress
-Last activity: 2026-04-15 — Completed 01-02-PLAN.md
+Phase: 2 of 5 (JS Tracker and Event Ingestion Pipeline)
+Plan: 0 of 4 in current phase
+Status: Phase 1 complete
+Last activity: 2026-04-15 — Completed 01-03-PLAN.md (Phase 1 done)
 
-Progress: [██░░░░░░░░] 12%
+Progress: [██░░░░░░░░] 18%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
-- Average duration: 10.5 min
-- Total execution time: 21 min
+- Total plans completed: 3
+- Average duration: 8 min
+- Total execution time: 24 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1 | 2 | 21 min | 10.5 min |
+| 1 | 3 | 24 min | 8 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (1 min), 01-02 (20 min)
-- Trend: variable
+- Last 5 plans: 01-01 (1 min), 01-02 (20 min), 01-03 (3 min)
+- Trend: improving
 
 *Updated after each plan completion*
 
@@ -49,6 +49,8 @@ Recent decisions affecting current work:
 - 01-01: Include RudderStack Postgres service in compose so bootstrap has no hidden local prerequisites
 - 01-02: ClickHouse async_insert must live under users profile config (users.d), not top-level config.d
 - 01-02: Schema verification baseline includes sorting_key introspection via system.tables
+- 01-03: Smoke test should publish via rpk topic produce, not REST proxy, for deterministic local behavior
+- 01-03: Smoke test must create topic idempotently to avoid first-run false negatives
 
 ### Pending Todos
 
@@ -61,6 +63,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-14 23:55:51Z
-Stopped at: Completed 01-02-PLAN.md
+Last session: 2026-04-15 00:00:16Z
+Stopped at: Completed 01-03-PLAN.md (Phase 1 complete)
 Resume file: None
