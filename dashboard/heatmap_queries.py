@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, Mapping, Optional, Tuple
 
+from heatmap_filters import build_url_predicate
+
 
 ALLOWED_EVENT_TYPES = {"click", "scroll", "mousemove"}
 
@@ -36,30 +38,10 @@ def _validate_event_type(event_type: str) -> str:
     return normalized
 
 
-def _escape_like_value(value: str) -> str:
-    """Escape SQL LIKE metacharacters while preserving '*' user wildcard support."""
-    escaped = value.replace("\\", "\\\\")
-    escaped = escaped.replace("%", r"\%")
-    escaped = escaped.replace("_", r"\_")
-    return escaped
-
-
-def _build_url_predicate(url_filter: str) -> Tuple[str, Dict[str, Any]]:
-    normalized = (url_filter or "").strip()
-    if not normalized:
-        raise ValueError("url_filter is required")
-
-    if "*" in normalized:
-        like_pattern = _escape_like_value(normalized).replace("*", "%")
-        return "page_url LIKE %(page_url_like)s ESCAPE '\\\\'", {"page_url_like": like_pattern}
-
-    return "page_url = %(page_url_exact)s", {"page_url_exact": normalized}
-
-
 def build_heatmap_aggregate_query(config: HeatmapQueryConfig) -> Tuple[str, Dict[str, Any]]:
     """Build a parameterized ClickHouse SQL query for 5% heatmap bins."""
     event_type = _validate_event_type(config.event_type)
-    url_predicate, params = _build_url_predicate(config.url_filter)
+    url_predicate, params = build_url_predicate(config.url_filter)
 
     predicates = [
         url_predicate,

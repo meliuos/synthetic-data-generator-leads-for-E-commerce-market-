@@ -1,8 +1,14 @@
-import streamlit as st
-import requests
 import hashlib
-from pathlib import Path
+import os
 from datetime import datetime
+from pathlib import Path
+
+import pandas as pd
+import requests
+import streamlit as st
+
+from heatmap_plotly import build_heatmap_overlay_figure
+from heatmap_queries import fetch_heatmap_aggregates_for
 
 st.set_page_config(page_title="Lead Intelligence", layout="wide")
 
@@ -14,7 +20,24 @@ if "screenshot_timestamp" not in st.session_state:
     st.session_state.screenshot_timestamp = None
 
 # Screenshot service URL
-SCREENSHOT_SERVICE_URL = "http://localhost:8100"  # Adjust based on network
+SCREENSHOT_SERVICE_URL = os.getenv("SCREENSHOT_SERVICE_URL", "http://localhost:8100")
+CLICKHOUSE_HOST = os.getenv("CLICKHOUSE_HOST", "localhost")
+CLICKHOUSE_PORT = int(os.getenv("CLICKHOUSE_PORT", "8123"))
+CLICKHOUSE_DB = os.getenv("CLICKHOUSE_DB", "analytics")
+CLICKHOUSE_USER = os.getenv("CLICKHOUSE_USER", "analytics")
+CLICKHOUSE_PASSWORD = os.getenv("CLICKHOUSE_PASSWORD", "analytics_password")
+
+
+PAGE_URLS = [
+    "https://example.com",
+    "https://example.com/products",
+    "https://example.com/about",
+]
+
+VIEWPORTS = {
+    "Desktop (1440px)": (1440, 900),
+    "Mobile (390px)": (390, 844),
+}
 
 def capture_screenshot(url: str) -> dict:
     """Call screenshot service to capture URL at both viewports."""
@@ -34,17 +57,82 @@ def get_screenshot_path(url_hash: str, viewport: int) -> Path:
     """Return path to cached screenshot."""
     return Path("./screenshots") / url_hash / f"{viewport}.png"
 
+
+def get_clickhouse_client():
+    """Create a ClickHouse client from environment settings."""
+    try:
+        import clickhouse_connect
+    except ImportError as exc:
+        st.error(f"ClickHouse client dependency missing: {exc}")
+        return None
+
+    try:
+        return clickhouse_connect.get_client(
+            host=CLICKHOUSE_HOST,
+            port=CLICKHOUSE_PORT,
+            database=CLICKHOUSE_DB,
+            username=CLICKHOUSE_USER,
+            password=CLICKHOUSE_PASSWORD,
+        )
+    except Exception as exc:
+        st.error(f"Failed to connect to ClickHouse: {exc}")
+        return None
+
+
+def load_heatmap_dataframe(url_filter: str, viewport_width: int, viewport_height: int):
+    """Fetch pre-binned click heatmap data for the selected page."""
+    client = get_clickhouse_client()
+    if client is None:
+        return pd.DataFrame(columns=["x_bin_pct", "y_bin_pct", "event_count"])
+
+    try:
+        return fetch_heatmap_aggregates_for(
+            client,
+            url_filter=url_filter,
+            event_type="click",
+            viewport_width=viewport_width,
+            viewport_height=viewport_height,
+        )
+    except Exception as exc:
+        st.error(f"Failed to load click heatmap data: {exc}")
+        return pd.DataFrame(columns=["x_bin_pct", "y_bin_pct", "event_count"])
+
+
+def render_heatmap_tab(
+    selected_url: str,
+    viewport_label: str,
+    viewport_width: int,
+    viewport_height: int,
+) -> None:
+    """Render one viewport tab with the screenshot-backed heatmap overlay."""
+    url_hash = hashlib.sha256(selected_url.encode()).hexdigest()[:12]
+    screenshot_path = get_screenshot_path(url_hash, viewport_width)
+
+    if not screenshot_path.exists():
+        st.info(f"{viewport_label}: click 'Refresh Screenshot' to capture this view")
+        return
+
+    dataframe = load_heatmap_dataframe(selected_url, viewport_width, viewport_height)
+    if getattr(dataframe, "empty", True):
+        st.caption(f"{viewport_label}: no click events found yet; showing the screenshot canvas")
+
+    try:
+        figure = build_heatmap_overlay_figure(
+            screenshot_path,
+            dataframe,
+            viewport_width,
+            viewport_height,
+            title=f"{viewport_label} click heatmap",
+        )
+        st.plotly_chart(figure, use_container_width=True)
+    except Exception as exc:
+        st.error(f"Failed to render {viewport_label.lower()} heatmap: {exc}")
+
 # Main dashboard layout
 st.subheader("📸 Page Screenshot Viewer")
 
 # URL selection
-page_urls = [
-    "https://example.com",
-    "https://example.com/products",
-    "https://example.com/about",
-]
-
-selected_url = st.selectbox("Select page to view:", page_urls, index=0)
+selected_url = st.selectbox("Select page to view:", PAGE_URLS, index=0)
 
 # Refresh button
 col1, col2 = st.columns([1, 3])
@@ -70,29 +158,18 @@ if refresh_button:
 st.write("---")
 
 try:
-    # Get screenshot paths
-    url_hash = hashlib.sha256(selected_url.encode()).hexdigest()[:12]
-    
-    desktop_path = get_screenshot_path(url_hash, 1440)
-    mobile_path = get_screenshot_path(url_hash, 390)
-    
-    # Tabs for viewport selection
-    tab1, tab2 = st.tabs(["Desktop (1440px)", "Mobile (390px)"])
-    
-    with tab1:
-        if desktop_path.exists():
-            st.image(str(desktop_path), use_column_width=True, caption="Desktop viewport")
-        else:
-            st.info("📸 Click 'Refresh Screenshot' to capture the desktop view of this page")
-    
-    with tab2:
-        if mobile_path.exists():
-            st.image(str(mobile_path), use_column_width=True, caption="Mobile viewport")
-        else:
-            st.info("📱 Click 'Refresh Screenshot' to capture the mobile view of this page")
+    desktop_tab, mobile_tab = st.tabs(list(VIEWPORTS.keys()))
+
+    with desktop_tab:
+        desktop_width, desktop_height = VIEWPORTS["Desktop (1440px)"]
+        render_heatmap_tab(selected_url, "Desktop (1440px)", desktop_width, desktop_height)
+
+    with mobile_tab:
+        mobile_width, mobile_height = VIEWPORTS["Mobile (390px)"]
+        render_heatmap_tab(selected_url, "Mobile (390px)", mobile_width, mobile_height)
             
 except Exception as e:
     st.error(f"Failed to load screenshots: {e}")
 
 st.write("---")
-st.info("💡 Screenshots provide the canvas for heatmap overlays in Phase 4. Refresh as needed to capture updated page versions.")
+st.info("💡 Screenshots provide the canvas for Plotly heatmap overlays in Phase 4. Refresh as needed to capture updated page versions.")
