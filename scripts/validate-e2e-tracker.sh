@@ -40,17 +40,17 @@ WARN_COUNT=0
 
 echo_success() {
     echo -e "${GREEN}✓${NC} $1"
-    ((PASS_COUNT++))
+    PASS_COUNT=$((PASS_COUNT + 1))
 }
 
 echo_fail() {
     echo -e "${RED}✗${NC} $1"
-    ((FAIL_COUNT++))
+    FAIL_COUNT=$((FAIL_COUNT + 1))
 }
 
 echo_warn() {
     echo -e "${YELLOW}⚠${NC} $1"
-    ((WARN_COUNT++))
+    WARN_COUNT=$((WARN_COUNT + 1))
 }
 
 echo_info() {
@@ -143,14 +143,25 @@ check_clickhouse_data() {
         --query "EXISTS TABLE $CLICKHOUSE_DB.click_events" 2>/dev/null | grep -q "1"; then
         echo_success "ClickHouse table '$CLICKHOUSE_DB.click_events' exists"
         
-        # Count recent events
-        CLICK_COUNT=$(clickhouse-client -h "$CLICKHOUSE_HOST" -u "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" \
-            --query "SELECT COUNT(*) FROM $CLICKHOUSE_DB.click_events WHERE event_time > NOW() - INTERVAL 5 minute" 2>/dev/null)
-        
-        if [ "$CLICK_COUNT" -gt 0 ]; then
-            echo_success "ClickHouse click_events: $CLICK_COUNT events in last 5 minutes"
-        else
+        # Use received_at for freshness because event_time can be malformed if payload mapping is wrong
+        RECENT_COUNT=$(clickhouse-client -h "$CLICKHOUSE_HOST" -u "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" \
+            --query "SELECT COUNT(*) FROM $CLICKHOUSE_DB.click_events WHERE received_at > now64(3) - INTERVAL 10 minute" 2>/dev/null)
+
+        VALID_RECENT_COUNT=$(clickhouse-client -h "$CLICKHOUSE_HOST" -u "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" \
+            --query "SELECT COUNT(*) FROM $CLICKHOUSE_DB.click_events WHERE received_at > now64(3) - INTERVAL 10 minute AND event_type != '' AND page_url != ''" 2>/dev/null)
+
+        MALFORMED_RECENT_COUNT=$((RECENT_COUNT - VALID_RECENT_COUNT))
+
+        if [ "$RECENT_COUNT" -eq 0 ]; then
             echo_warn "No recent events in ClickHouse (events may not have been flushed yet)"
+        elif [ "$VALID_RECENT_COUNT" -gt 0 ]; then
+            echo_success "ClickHouse click_events: $VALID_RECENT_COUNT valid events in last 10 minutes"
+            if [ "$MALFORMED_RECENT_COUNT" -gt 0 ]; then
+                echo_warn "Detected $MALFORMED_RECENT_COUNT malformed recent rows (empty event_type/page_url)"
+            fi
+        else
+            echo_fail "Recent rows were ingested but all are malformed (empty event_type/page_url). Check tracker->RudderStack payload mapping."
+            return 1
         fi
     else
         echo_fail "ClickHouse table '$CLICKHOUSE_DB.click_events' does not exist"
@@ -158,12 +169,14 @@ check_clickhouse_data() {
     fi
     
     # Verify coordinate data
-    if [ "$CLICK_COUNT" -gt 0 ]; then
+    if [ "$VALID_RECENT_COUNT" -gt 0 ]; then
         COORD_SAMPLE=$(clickhouse-client -h "$CLICKHOUSE_HOST" -u "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" \
-            --query "SELECT x_pct, y_pct FROM $CLICKHOUSE_DB.click_events WHERE x_pct IS NOT NULL LIMIT 1" 2>/dev/null)
+            --query "SELECT x_pct, y_pct FROM $CLICKHOUSE_DB.click_events WHERE received_at > now64(3) - INTERVAL 10 minute AND event_type = 'click' AND x_pct IS NOT NULL AND y_pct IS NOT NULL ORDER BY received_at DESC LIMIT 1" 2>/dev/null)
         
         if [ -n "$COORD_SAMPLE" ]; then
             echo_success "Coordinate data present in ClickHouse: $COORD_SAMPLE"
+        else
+            echo_warn "No click coordinate sample found in recent valid events"
         fi
     fi
     
@@ -211,9 +224,9 @@ print_test_instructions() {
     echo
     echo "4. Verify in ClickHouse:"
     echo "   $ clickhouse-client -u analytics -p"
-    echo "   > SELECT event_type, x_pct, y_pct, timestamp"
+    echo "   > SELECT event_type, x_pct, y_pct, scroll_pct, event_time, received_at"
     echo "   >   FROM analytics.click_events"
-    echo "   >   WHERE event_time > NOW() - INTERVAL 10 minute"
+    echo "   >   WHERE received_at > now64(3) - INTERVAL 10 minute"
     echo "   >   LIMIT 10"
     echo
     echo "5. Expected results:"

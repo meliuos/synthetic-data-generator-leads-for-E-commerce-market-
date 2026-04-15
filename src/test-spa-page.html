@@ -178,12 +178,13 @@
     <!-- Consent Banner -->
     <div class="consent-banner" id="consent-banner">
         <div>
+                        <button id="btn-accept">Accept Cookies</button>
+
             <strong>Cookie Consent</strong><br>
             This site tracks user interactions with your consent to improve analytics. No personal data is collected without your explicit acceptance.
         </div>
         <div style="display: flex; gap: 10px;">
             <button class="decline" id="btn-decline">Decline</button>
-            <button id="btn-accept">Accept Cookies</button>
         </div>
     </div>
 
@@ -382,28 +383,36 @@
                 }
 
                 try {
-                    // Send to RudderStack
+                    // Send Segment-compatible events to RudderStack batch endpoint
                     const payload = {
-                        batch: this.eventQueue.map((event, idx) => ({
+                        batch: this.eventQueue.map((event) => ({
                             type: 'track',
                             event: event.type,
                             userId: 'lead-tracker',
+                            anonymousId: this.sessionId,
                             properties: {
-                                ...event,
+                                x_pct: event.x_pct,
+                                y_pct: event.y_pct,
+                                scroll_pct: event.scroll_pct,
+                                element_selector: event.element_selector,
+                                page_url: event.url || window.location.href,
+                                viewport_width: event.viewport_width || window.innerWidth,
+                                viewport_height: event.viewport_height || window.innerHeight,
                                 session_id: this.sessionId
                             },
                             timestamp: event.timestamp
-                        }))
+                        })),
+                        sentAt: new Date().toISOString()
                     };
 
                     console.log('[Tracker] Sending batch to RudderStack:', payload.batch.length, 'events');
                     
                     // Make async request to RudderStack
-                    fetch('http://localhost:8080/track', {
+                    fetch('http://localhost:8080/v1/batch', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-Write-Key': 'dev_write_key'
+                            'Authorization': 'Basic ' + btoa('dev_write_key:')
                         },
                         body: JSON.stringify(payload)
                     }).then(res => {
@@ -493,7 +502,7 @@
         }
 
         function checkRudderStack() {
-            fetch('http://localhost:8080/health', { method: 'HEAD' })
+            fetch('http://localhost:8080/health', { method: 'GET' })
                 .then(res => {
                     const status = document.getElementById('rudderstack-status');
                     if (res.ok) {
@@ -502,7 +511,7 @@
                         tracker.rudderStackActive = true;
                     } else {
                         status.className = 'status-line warning';
-                        status.textContent = '⚠ RudderStack: Responding but unhealthy - may still accept events';
+                        status.textContent = '⚠ RudderStack: Responding but unhealthy (HTTP ' + res.status + ')';
                     }
                 })
                 .catch(() => {

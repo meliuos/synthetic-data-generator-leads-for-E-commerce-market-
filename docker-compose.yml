@@ -63,6 +63,18 @@ services:
       timeout: 5s
       retries: 10
 
+  rudder-transformer:
+    image: rudderstack/rudder-transformer:1.50.0
+    network_mode: "service:rudderstack"
+    depends_on:
+      rudderstack:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/features >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
   rudderstack:
     image: rudderlabs/rudder-server:latest
     depends_on:
@@ -87,6 +99,7 @@ services:
       RSERVER_BACKEND_CONFIG_CONFIG_JSONPATH: /etc/rudderstack/workspaceConfig.json
     volumes:
       - ./infra/rudderstack/workspaceConfig.json:/etc/rudderstack/workspaceConfig.json:ro
+      - ./infra/rudderstack/config.yaml:/config/config.yaml:ro
     ports:
       - "8080:8080"
     healthcheck:
