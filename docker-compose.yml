@@ -128,3 +128,23 @@ services:
       interval: 15s
       timeout: 5s
       retries: 20
+
+  playwright-screenshot:
+    build:
+      context: .
+      dockerfile: services/screenshot/Dockerfile
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    environment:
+      LOG_LEVEL: INFO
+    volumes:
+      - ./screenshots:/screenshots
+      - /dev/shm:/dev/shm
+    ports:
+      - "8100:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
