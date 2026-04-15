@@ -8,8 +8,8 @@ import requests
 import streamlit as st
 
 from heatmap_filters import normalize_url_filter
-from heatmap_plotly import build_heatmap_overlay_figure
 from heatmap_queries import fetch_heatmap_aggregates_for
+from heatmap_views import build_heatmap_figure_for_mode
 
 st.set_page_config(page_title="Lead Intelligence", layout="wide")
 
@@ -132,7 +132,8 @@ def render_heatmap_tab(
         st.caption(f"{viewport_label}: no {mode_label.lower()} events found yet; showing the screenshot canvas")
 
     try:
-        figure = build_heatmap_overlay_figure(
+        figure = build_heatmap_figure_for_mode(
+            event_type,
             screenshot_path,
             dataframe,
             viewport_width,
