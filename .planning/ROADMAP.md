@@ -29,7 +29,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. A JSON message manually produced to the Redpanda topic appears as a row in the `click_events` MergeTree table within 5 seconds
   3. The MergeTree ORDER BY is `(page_url, event_type, toDate(event_time))` and the schema stores `x_pct`, `y_pct`, `element_selector`, `device_type`, `session_id`, `anonymous_user_id` (hashed) — no raw PII columns exist
   4. ClickHouse async_insert is configured so the Kafka engine does not hammer with per-row inserts
-**Plans**: TBD
+**Plans**: 4 plans in 4 waves
 
 Plans:
 - [x] 01-01: Docker Compose stack (Redpanda + ClickHouse + RudderStack data plane)
@@ -78,7 +78,7 @@ Plans:
   3. Switching to hover/movement view renders a heatmap from throttled mousemove events on the same screenshot
   4. Entering a URL pattern with a wildcard (e.g. `/product/*`) aggregates events from all matching pages into a single heatmap
   5. All heatmap data is aggregated in ClickHouse using 5% grid binning before reaching Python — no raw event rows are fetched to the dashboard process
-**Plans**: TBD
+**Plans**: 4 plans in 4 waves
 
 Plans:
 - [ ] 04-01: ClickHouse binning queries (5% buckets, 20x20 grid, parameterized by URL, event type, viewport)
