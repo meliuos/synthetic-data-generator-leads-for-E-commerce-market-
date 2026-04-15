@@ -1,0 +1,16 @@
+{
+  "name": "lead-tracker",
+  "version": "0.1.0",
+  "description": "JavaScript tracker for capturing user interactions and events",
+  "main": "src/tracker/index.js",
+  "scripts": {
+    "test": "jest",
+    "dev": "node --watch",
+    "smoke-test": "bash scripts/smoke-test.sh"
+  },
+  "keywords": ["tracker", "event", "analytics"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {},
+  "dependencies": {}
+}

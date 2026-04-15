@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lead Tracker - RudderStack Integration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .section {
+            background: white;
+            padding: 40px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            min-height: 400px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button.danger {
+            background-color: #dc3545;
+        }
+        button.danger:hover {
+            background-color: #c82333;
+        }
+        .debug-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            border: 2px solid #333;
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 400px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 11px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        .debug-panel h3 {
+            margin-top: 0;
+            font-size: 14px;
+        }
+        .event-count {
+            color: #007bff;
+            font-weight: bold;
+        }
+        .status-line {
+            margin: 5px 0;
+            padding: 5px;
+            background: #f0f0f0;
+            border-radius: 3px;
+        }
+        .status-line.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-line.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .status-line.warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        /* Consent banner styles */
+        .consent-banner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: #333;
+            color: white;
+            padding: 20px;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.2);
+            z-index: 999;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+        .consent-banner.hidden {
+            display: none;
+        }
+        .consent-banner button {
+            background-color: #28a745;
+            margin: 0;
+            padding: 8px 16px;
+        }
+        .consent-banner button:hover {
+            background-color: #218838;
+        }
+        .consent-banner button.decline {
+            background-color: #6c757d;
+        }
+        .consent-banner button.decline:hover {
+            background-color: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <h1>Lead Tracker - RudderStack Pipeline Test</h1>
+    <p>Complete end-to-end test: Browser Events → RudderStack → Redpanda → ClickHouse</p>
+
+    <div class="section">
+        <h2>Test Instructions</h2>
+        <ol>
+            <li>Accept the cookie consent banner at the bottom</li>
+            <li>Click on various buttons below</li>
+            <li>Scroll down through the page content</li>
+            <li>Move your mouse rapidly to test throttling</li>
+            <li>Click "Manual Flush" to flush events to RudderStack</li>
+            <li>Check the debug panel on the right for event tracking status</li>
+            <li>Use ClickHouse CLI to verify events: <code>SELECT * FROM analytics.click_events LIMIT 5</code></li>
+        </ol>
+    </div>
+
+    <div class="section">
+        <h2>Event Capture Tests</h2>
+        <p>Click these buttons to generate tracked events:</p>
+        <button id="btn-test1">Test Button 1</button>
+        <button id="btn-test2">Test Button 2</button>
+        <button id="btn-test3">Test Button 3</button>
+        <button id="btn-manual" class="danger">Manual Flush to RudderStack</button>
+    </div>
+
+    <div class="section">
+        <h2>Scroll Content 1</h2>
+        <p>Scroll down to test scroll depth tracking. Maximum scroll depth is tracked per session.</p>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+    </div>
+
+    <div class="section">
+        <h2>Scroll Content 2</h2>
+        <p>More content for scrolling. RudderStack should be receiving batches of events every 5 seconds.</p>
+        <button id="btn-scroll-test">Click at Different Scroll Position</button>
+        <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+    </div>
+
+    <div class="section">
+        <h2>Scroll Content 3</h2>
+        <p>Almost at the bottom of the page. Check the debug panel for total event count.</p>
+        <p>These events should be flowing through: Browser → RudderStack (localhost:8080) → Redpanda topic 'lead-events' → ClickHouse analytics.click_events table.</p>
+    </div>
+
+    <div class="section">
+        <h2>API Integration Status</h2>
+        <div id="status-container">
+            <div class="status-line" id="consent-status">⏳ Consent: Waiting for user...</div>
+            <div class="status-line" id="tracker-status">⏳ Tracker: Initializing...</div>
+            <div class="status-line" id="rudderstack-status">⏳ RudderStack: Checking availability...</div>
+            <div class="status-line" id="flush-status">⏳ Flush: Idle</div>
+        </div>
+    </div>
+
+    <!-- Consent Banner -->
+    <div class="consent-banner" id="consent-banner">
+        <div>
+            <strong>Cookie Consent</strong><br>
+            This site tracks user interactions with your consent to improve analytics. No personal data is collected without your explicit acceptance.
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="decline" id="btn-decline">Decline</button>
+            <button id="btn-accept">Accept Cookies</button>
+        </div>
+    </div>
+
+    <!-- Debug Panel -->
+    <div class="debug-panel">
+        <h3>📊 Pipeline Debug</h3>
+        <div id="debug-content">
+            <div class="status-line">Queue: <span class="event-count" id="queue-count">0</span> events</div>
+            <div class="status-line">Session: <span id="session-id">Loading...</span></div>
+            <div class="status-line">Consent: <span id="consent-state">Pending</span></div>
+            <hr style="margin: 10px 0;">
+            <div class="status-line">Last Event: <span id="last-event">None</span></div>
+            <div class="status-line">Flush Status: <span id="flush-result">Waiting...</span></div>
+            <div class="status-line">Events Flushed: <span class="event-count" id="flushed-count">0</span></div>
+        </div>
+    </div>
+
+    <!-- Main Tracker and Integration Code -->
+    <script>
+        // ============================================================================
+        // Consent Management
+        // ============================================================================
+        
+        let userConsent = localStorage.getItem('lead_tracker_consent') === 'true';
+
+        function hasConsent() {
+            return userConsent;
+        }
+
+        function initConsentBanner() {
+            const banner = document.getElementById('consent-banner');
+            const acceptBtn = document.getElementById('btn-accept');
+            const declineBtn = document.getElementById('btn-decline');
+
+            if (userConsent) {
+                banner.classList.add('hidden');
+            }
+
+            acceptBtn.addEventListener('click', () => {
+                userConsent = true;
+                localStorage.setItem('lead_tracker_consent', 'true');
+                banner.classList.add('hidden');
+                
+                // Trigger consent callback
+                tracker.onConsentAccepted();
+                updateConsentStatus();
+                
+                console.log('[Consent] User accepted cookie consent');
+            });
+
+            declineBtn.addEventListener('click', () => {
+                userConsent = false;
+                localStorage.setItem('lead_tracker_consent', 'false');
+                banner.classList.add('hidden');
+                updateConsentStatus();
+                console.log('[Consent] User declined cookie consent');
+            });
+
+            updateConsentStatus();
+        }
+
+        // ============================================================================
+        // Tracker Implementation (Browser/DOM-based)
+        // ============================================================================
+        
+        const tracker = {
+            eventQueue: [],
+            sessionData: { maxScrollPct: 0, startTime: new Date().toISOString() },
+            throttleData: { lastMousemoveTime: 0 },
+            sessionId: null,
+            rudderStackActive: false,
+            totalFlushed: 0,
+
+            normalizeCoordinates(clientX, clientY) {
+                const docWidth = document.documentElement.scrollWidth;
+                const docHeight = document.documentElement.scrollHeight;
+                const scrollX = window.scrollX || window.pageXOffset || 0;
+                const scrollY = window.scrollY || window.pageYOffset || 0;
+                
+                const documentX = clientX + scrollX;
+                const documentY = clientY + scrollY;
+                
+                const x_pct = (docWidth > 0) ? (documentX / docWidth) * 100 : 0;
+                const y_pct = (docHeight > 0) ? (documentY / docHeight) * 100 : 0;
+                
+                return {
+                    x_pct: Math.max(0, Math.min(100, Math.round(x_pct * 10) / 10)),
+                    y_pct: Math.max(0, Math.min(100, Math.round(y_pct * 10) / 10))
+                };
+            },
+
+            captureClick(event) {
+                if (!hasConsent()) return null;
+                
+                const { x_pct, y_pct } = this.normalizeCoordinates(event.clientX, event.clientY);
+                const target = event.target;
+                let selector = target.tagName.toLowerCase();
+                if (target.id) selector += '#' + target.id;
+                else if (target.className) selector += '.' + target.className.replace(/\s+/g, '.');
+
+                const clickEvent = {
+                    type: 'click',
+                    x_pct,
+                    y_pct,
+                    element_selector: selector,
+                    timestamp: new Date().toISOString()
+                };
+
+                this.eventQueue.push(clickEvent);
+                return clickEvent;
+            },
+
+            captureScroll(event) {
+                if (!hasConsent()) return null;
+                
+                const scrollTop = window.scrollY || window.pageYOffset || 0;
+                const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+                const scroll_pct = docHeight > 0 ? Math.round((scrollTop / docHeight) * 100) : 0;
+
+                if (scroll_pct > (this.sessionData.maxScrollPct || 0)) {
+                    this.sessionData.maxScrollPct = scroll_pct;
+                }
+
+                const scrollEvent = {
+                    type: 'scroll',
+                    scroll_pct,
+                    max_scroll_pct: this.sessionData.maxScrollPct,
+                    timestamp: new Date().toISOString()
+                };
+
+                this.eventQueue.push(scrollEvent);
+                return scrollEvent;
+            },
+
+            captureMousemove(event) {
+                if (!hasConsent()) return null;
+                
+                const now = Date.now();
+                const lastTime = this.throttleData.lastMousemoveTime || 0;
+                
+                if (now - lastTime < 100) return null;
+
+                this.throttleData.lastMousemoveTime = now;
+                const { x_pct, y_pct } = this.normalizeCoordinates(event.clientX, event.clientY);
+
+                const mousemoveEvent = {
+                    type: 'mousemove',
+                    x_pct,
+                    y_pct,
+                    timestamp: new Date().toISOString()
+                };
+
+                this.eventQueue.push(mousemoveEvent);
+                return mousemoveEvent;
+            },
+
+            capturePageView() {
+                if (!hasConsent()) return null;
+                
+                const pageViewEvent = {
+                    type: 'page_view',
+                    url: window.location.href,
+                    title: document.title,
+                    viewport_width: window.innerWidth,
+                    viewport_height: window.innerHeight,
+                    document_width: document.documentElement.scrollWidth,
+                    document_height: document.documentElement.scrollHeight,
+                    timestamp: new Date().toISOString()
+                };
+
+                this.eventQueue.push(pageViewEvent);
+                return pageViewEvent;
+            },
+
+            generateSessionId() {
+                return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            },
+
+            init() {
+                this.sessionId = this.generateSessionId();
+                this.capturePageView();
+                console.log('[Tracker] Initialized with session:', this.sessionId);
+            },
+
+            onConsentAccepted() {
+                // When consent is accepted, capture initial page view if not already done
+                if (this.eventQueue.length === 0) {
+                    this.capturePageView();
+                }
+                console.log('[Tracker] Consent accepted, now tracking events');
+            },
+
+            flushToRudderStack() {
+                if (this.eventQueue.length === 0) {
+                    return { success: true, count: 0 };
+                }
+
+                try {
+                    // Send to RudderStack
+                    const payload = {
+                        batch: this.eventQueue.map((event, idx) => ({
+                            type: 'track',
+                            event: event.type,
+                            userId: 'lead-tracker',
+                            properties: {
+                                ...event,
+                                session_id: this.sessionId
+                            },
+                            timestamp: event.timestamp
+                        }))
+                    };
+
+                    console.log('[Tracker] Sending batch to RudderStack:', payload.batch.length, 'events');
+                    
+                    // Make async request to RudderStack
+                    fetch('http://localhost:8080/track', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Write-Key': 'dev_write_key'
+                        },
+                        body: JSON.stringify(payload)
+                    }).then(res => {
+                        console.log('[Tracker] RudderStack response:', res.status);
+                        if (res.status < 400) {
+                            const flushedCount = this.eventQueue.length;
+                            this.totalFlushed += flushedCount;
+                            this.eventQueue = [];
+                            updateDebugPanel();
+                            return { success: true, count: flushedCount };
+                        }
+                    }).catch(err => {
+                        console.error('[Tracker] RudderStack flush error:', err);
+                        return { success: false, count: 0 };
+                    });
+
+                    return { success: true, count: this.eventQueue.length };
+                } catch (error) {
+                    console.error('[Tracker] Flush error:', error);
+                    return { success: false, count: this.eventQueue.length };
+                }
+            }
+        };
+
+        // Initialize tracker
+        tracker.init();
+
+        // Attach event listeners
+        document.addEventListener('click', (e) => {
+            const event = tracker.captureClick(e);
+            if (event) console.log('[Event] Click:', event);
+            updateDebugPanel();
+        });
+
+        window.addEventListener('scroll', (e) => {
+            const event = tracker.captureScroll(e);
+            if (event) updateDebugPanel();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            const event = tracker.captureMousemove(e);
+            if (event) updateDebugPanel();
+        });
+
+        // Auto-flush every 5 seconds
+        setInterval(() => {
+            tracker.flushToRudderStack();
+        }, 5000);
+
+        // Manual flush button
+        document.getElementById('btn-manual').addEventListener('click', () => {
+            console.log('[Manual] Triggering flush...');
+            tracker.flushToRudderStack();
+        });
+
+        // ============================================================================
+        // UI Updates
+        // ============================================================================
+
+        function updateDebugPanel() {
+            const count = tracker.eventQueue.length;
+            document.getElementById('queue-count').textContent = count;
+            document.getElementById('session-id').textContent = tracker.sessionId;
+            
+            if (tracker.eventQueue.length > 0) {
+                const lastEvent = tracker.eventQueue[tracker.eventQueue.length - 1];
+                let desc = lastEvent.type;
+                if (lastEvent.x_pct !== undefined) desc += ` (${lastEvent.x_pct}%, ${lastEvent.y_pct}%)`;
+                if (lastEvent.scroll_pct !== undefined) desc += ` (${lastEvent.scroll_pct}%)`;
+                document.getElementById('last-event').textContent = desc;
+            }
+            
+            document.getElementById('flushed-count').textContent = tracker.totalFlushed;
+        }
+
+        function updateConsentStatus() {
+            const status = document.getElementById('consent-status');
+            if (hasConsent()) {
+                status.className = 'status-line success';
+                status.textContent = '✓ Consent: Accepted - Tracking enabled';
+                document.getElementById('consent-state').textContent = 'Accepted';
+            } else {
+                status.className = 'status-line warning';
+                status.textContent = '⚠ Consent: Not yet accepted - Tracking disabled';
+                document.getElementById('consent-state').textContent = 'Pending';
+            }
+        }
+
+        function checkRudderStack() {
+            fetch('http://localhost:8080/health', { method: 'HEAD' })
+                .then(res => {
+                    const status = document.getElementById('rudderstack-status');
+                    if (res.ok) {
+                        status.className = 'status-line success';
+                        status.textContent = '✓ RudderStack: Running at localhost:8080';
+                        tracker.rudderStackActive = true;
+                    } else {
+                        status.className = 'status-line warning';
+                        status.textContent = '⚠ RudderStack: Responding but unhealthy - may still accept events';
+                    }
+                })
+                .catch(() => {
+                    const status = document.getElementById('rudderstack-status');
+                    status.className = 'status-line error';
+                    status.textContent = '✗ RudderStack: Not available at localhost:8080';
+                });
+        }
+
+        // Initialize UI
+        initConsentBanner();
+
+        // Update status on load
+        const trackerStatus = document.getElementById('tracker-status');
+        trackerStatus.className = 'status-line success';
+        trackerStatus.textContent = '✓ Tracker: Running with session ' + tracker.sessionId;
+
+        updateDebugPanel();
+        updateConsentStatus();
+        checkRudderStack();
+
+        // Check RudderStack periodically
+        setTimeout(checkRudderStack, 2000);
+        setInterval(checkRudderStack, 10000);
+
+        console.log('✓ Tracker initialized');
+        console.log('✓ Click handlers attached');
+        console.log('✓ Scroll handlers attached');
+        console.log('✓ RudderStack flush configured (5 second intervals)');
+    </script>
+</body>
+</html>

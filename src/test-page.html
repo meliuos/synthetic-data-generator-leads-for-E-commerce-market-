@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracker Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .section {
+            background: white;
+            padding: 40px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            min-height: 400px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .debug-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            border: 2px solid #333;
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 300px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        .debug-panel h3 {
+            margin-top: 0;
+            font-size: 14px;
+        }
+        .event-count {
+            color: #007bff;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Lead Tracker - Test Page</h1>
+    <p>This page tests the core tracker functionality: click, scroll, and mousemove events.</p>
+
+    <div class="section">
+        <h2>Header Section</h2>
+        <p>Test various clickable elements by clicking buttons below:</p>
+        <button id="btn-header">Click Header Button</button>
+        <button id="btn-test">Click Test Button</button>
+        <a href="#" onclick="return false;" style="display: inline-block; padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 4px; cursor: pointer;">Click Link</a>
+        <p>Try moving your mouse over this section rapidly to test mousemove throttling (max 10/sec).</p>
+    </div>
+
+    <div class="section">
+        <h2>Content Section 1</h2>
+        <p>Scroll down to trigger scroll events and track maximum scroll depth.</p>
+        <button id="btn-content1">Content 1 Button</button>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+    </div>
+
+    <div class="section">
+        <h2>Content Section 2</h2>
+        <button id="btn-content2">Content 2 Button</button>
+        <p>More content for scrolling. Try scrolling to different depths and clicking at different positions on the page.</p>
+    </div>
+
+    <div class="section">
+        <h2>Content Section 3</h2>
+        <button id="btn-content3">Content 3 Button</button>
+        <p>Even more content to make the page scrollable. Scroll depth will be calculated as a percentage of the document height.</p>
+    </div>
+
+    <div class="section">
+        <h2>Footer Section</h2>
+        <button id="btn-footer">Footer Button</button>
+        <p>This is the footer section. After scrolling to here and clicking, check the debug panel on the right side.</p>
+    </div>
+
+    <!-- Debug Panel -->
+    <div class="debug-panel">
+        <h3>📊 Tracker Debug</h3>
+        <div id="debug-content">
+            <p>Events captured: <span class="event-count" id="event-count">0</span></p>
+            <p id="last-event">No events yet</p>
+        </div>
+    </div>
+
+    <!-- Tracker Script -->
+    <script>
+        // Load tracker if available (for testing without full module system)
+        // In production, this would be loaded via proper module bundling
+        
+        // Simple tracker implementation for testing
+        const tracker = {
+            eventQueue: [],
+            sessionData: {
+                maxScrollPct: 0,
+                startTime: new Date().toISOString()
+            },
+            throttleData: {
+                lastMousemoveTime: 0
+            },
+
+            normalizeCoordinates(clientX, clientY) {
+                const docWidth = document.documentElement.scrollWidth;
+                const docHeight = document.documentElement.scrollHeight;
+                const scrollX = window.scrollX || window.pageXOffset || 0;
+                const scrollY = window.scrollY || window.pageYOffset || 0;
+                
+                const documentX = clientX + scrollX;
+                const documentY = clientY + scrollY;
+                
+                const x_pct = (docWidth > 0) ? (documentX / docWidth) * 100 : 0;
+                const y_pct = (docHeight > 0) ? (documentY / docHeight) * 100 : 0;
+                
+                return {
+                    x_pct: Math.max(0, Math.min(100, Math.round(x_pct * 10) / 10)),
+                    y_pct: Math.max(0, Math.min(100, Math.round(y_pct * 10) / 10))
+                };
+            },
+
+            captureClick(event) {
+                const { x_pct, y_pct } = this.normalizeCoordinates(event.clientX, event.clientY);
+                const target = event.target;
+                let selector = target.tagName.toLowerCase();
+                if (target.id) selector += '#' + target.id;
+                else if (target.className) selector += '.' + target.className.replace(/\s+/g, '.');
+
+                const clickEvent = {
+                    type: 'click',
+                    x_pct,
+                    y_pct,
+                    element_selector: selector,
+                    timestamp: new Date().toISOString()
+                };
+
+                this.eventQueue.push(clickEvent);
+                return clickEvent;
+            },
+
+            captureScroll(event) {
+                const scrollTop = window.scrollY || window.pageYOffset || 0;
+                const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+                const scroll_pct = docHeight > 0 ? Math.round((scrollTop / docHeight) * 100) : 0;
+
+                if (scroll_pct > (this.sessionData.maxScrollPct || 0)) {
+                    this.sessionData.maxScrollPct = scroll_pct;
+                }
+
+                const scrollEvent = {
+                    type: 'scroll',
+                    scroll_pct,
+                    max_scroll_pct: this.sessionData.maxScrollPct,
+                    timestamp: new Date().toISOString()
+                };
+
+                this.eventQueue.push(scrollEvent);
+                return scrollEvent;
+            },
+
+            captureMousemove(event) {
+                const now = Date.now();
+                const lastMousemoveTime = this.throttleData.lastMousemoveTime || 0;
+                const throttleInterval = 100;
+
+                if (now - lastMousemoveTime < throttleInterval) {
+                    return null;
+                }
+
+                this.throttleData.lastMousemoveTime = now;
+                const { x_pct, y_pct } = this.normalizeCoordinates(event.clientX, event.clientY);
+
+                const mousemoveEvent = {
+                    type: 'mousemove',
+                    x_pct,
+                    y_pct,
+                    timestamp: new Date().toISOString()
+                };
+
+                this.eventQueue.push(mousemoveEvent);
+                return mousemoveEvent;
+            },
+
+            capturePageView() {
+                const pageViewEvent = {
+                    type: 'page_view',
+                    url: window.location.href,
+                    title: document.title,
+                    viewport_width: window.innerWidth,
+                    viewport_height: window.innerHeight,
+                    document_width: document.documentElement.scrollWidth,
+                    document_height: document.documentElement.scrollHeight,
+                    timestamp: new Date().toISOString()
+                };
+
+                this.eventQueue.push(pageViewEvent);
+                return pageViewEvent;
+            }
+        };
+
+        // Initialize tracker
+        tracker.capturePageView();
+
+        // Attach event listeners
+        document.addEventListener('click', (e) => {
+            const event = tracker.captureClick(e);
+            console.log('Click event:', event);
+            updateDebugPanel();
+        });
+
+        window.addEventListener('scroll', (e) => {
+            const event = tracker.captureScroll(e);
+            updateDebugPanel();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            const event = tracker.captureMousemove(e);
+            if (event) console.log('Mousemove event:', event);
+        });
+
+        // Update debug panel
+        function updateDebugPanel() {
+            const count = tracker.eventQueue.length;
+            document.getElementById('event-count').textContent = count;
+            
+            if (tracker.eventQueue.length > 0) {
+                const lastEvent = tracker.eventQueue[tracker.eventQueue.length - 1];
+                const lastEventText = `${lastEvent.type}: ${lastEvent.x_pct !== undefined ? lastEvent.x_pct + '%' : ''} ${lastEvent.scroll_pct !== undefined ? lastEvent.scroll_pct + '%' : ''}`;
+                document.getElementById('last-event').textContent = lastEventText;
+            }
+        }
+
+        console.log('✓ Tracker initialized');
+        console.log('✓ Click handlers attached');
+        console.log('✓ Scroll handlers attached');
+        console.log('✓ Mousemove handlers attached');
+        updateDebugPanel();
+    </script>
+</body>
+</html>
