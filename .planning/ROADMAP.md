@@ -112,6 +112,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Streaming and Storage Backbone | 3/3 | Complete | 01-01, 01-02, 01-03 |
 | 2. JS Tracker and Event Ingestion Pipeline | 0/4 | Planned | 02-01, 02-02, 02-03, 02-04 |
-| 3. Screenshot Capture Service | 0/2 | Planned | 03-01, 03-02 |
+| 3. Screenshot Capture Service | 2/2 | Complete | 03-01, 03-02 |
 | 4. Heatmap Computation and Core Dashboard | 0/4 | Not started | - |
 | 5. Analytics Features | 0/4 | Not started | - |
