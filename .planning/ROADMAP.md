@@ -46,13 +46,13 @@ Plans:
   3. Mouse movement events arrive throttled — no more than 10 events per second per session appear in ClickHouse
   4. Navigating between SPA routes triggers a new page_view event for each route change without a full page reload
   5. No events appear in ClickHouse until the cookie consent banner has been accepted by the user
-**Plans**: TBD
+**Plans**: 4 plans in 2 waves
 
 Plans:
-- [ ] 02-01: JS snippet (click, scroll, mousemove, page view, SPA route change capture + coordinate normalization)
-- [ ] 02-02: Cookie consent gate (vanilla-cookieconsent v3.1.0 integration)
-- [ ] 02-03: RudderStack SDK wiring and Kafka destination configuration against Redpanda
-- [ ] 02-04: End-to-end pipeline validation (browser → ClickHouse row verification)
+- [ ] 02-01: JS tracker with click, scroll, mousemove, page_view capture and document-relative coordinate normalization
+- [ ] 02-02: RudderStack SDK integration and Kafka destination verification against Redpanda (resolves blocker)
+- [ ] 02-03: Cookie consent gate with vanilla-cookieconsent v3.1.0 (GDPR compliance)
+- [ ] 02-04: End-to-end browser validation (click/scroll/navigate → ClickHouse row verification)
 
 ### Phase 3: Screenshot Capture Service
 **Goal**: A standalone Playwright service captures full-page screenshots at desktop and mobile viewports for any registered URL, stores them on disk, and makes them refreshable from the dashboard.
@@ -111,7 +111,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Streaming and Storage Backbone | 3/3 | Complete | 01-01, 01-02, 01-03 |
-| 2. JS Tracker and Event Ingestion Pipeline | 0/4 | Not started | - |
+| 2. JS Tracker and Event Ingestion Pipeline | 0/4 | Planned | 02-01, 02-02, 02-03, 02-04 |
 | 3. Screenshot Capture Service | 0/2 | Not started | - |
 | 4. Heatmap Computation and Core Dashboard | 0/4 | Not started | - |
 | 5. Analytics Features | 0/4 | Not started | - |
