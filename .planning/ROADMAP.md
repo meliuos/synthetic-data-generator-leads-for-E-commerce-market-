@@ -62,7 +62,7 @@ Plans:
   1. Calling the screenshot service for a given URL produces two PNG files — one at 1440px viewport width and one at 390px — stored at a predictable path derived from the URL and viewport
   2. The captured screenshot's full document height matches `document.body.scrollHeight` reported by the JS snippet for the same page (within 5%)
   3. Screenshots can be refreshed on demand from the dashboard without restarting the service
-**Plans**: TBD
+**Plans**: 2 plans in 2 waves
 
 Plans:
 - [ ] 03-01: Playwright async screenshot service (1440px + 390px, URL+viewport hash caching, Docker container)
@@ -112,6 +112,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Streaming and Storage Backbone | 3/3 | Complete | 01-01, 01-02, 01-03 |
 | 2. JS Tracker and Event Ingestion Pipeline | 0/4 | Planned | 02-01, 02-02, 02-03, 02-04 |
-| 3. Screenshot Capture Service | 0/2 | Not started | - |
+| 3. Screenshot Capture Service | 0/2 | Planned | 03-01, 03-02 |
 | 4. Heatmap Computation and Core Dashboard | 0/4 | Not started | - |
 | 5. Analytics Features | 0/4 | Not started | - |
