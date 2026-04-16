@@ -37,6 +37,7 @@ services:
       CLICKHOUSE_DB: ${CLICKHOUSE_DB:-analytics}
       CLICKHOUSE_USER: ${CLICKHOUSE_USER:-analytics}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-analytics_password}
+      SCREENSHOT_SERVICE_URL: http://playwright-screenshot:8000
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
     volumes:
       - ./infra/clickhouse/users.d/async_insert.xml:/etc/clickhouse-server/users.d/async_insert.xml:ro
@@ -126,12 +127,15 @@ services:
     depends_on:
       clickhouse:
         condition: service_healthy
+      playwright-screenshot:
+        condition: service_healthy
     environment:
       CLICKHOUSE_HOST: clickhouse
       CLICKHOUSE_PORT: "8123"
       CLICKHOUSE_DB: ${CLICKHOUSE_DB:-analytics}
       CLICKHOUSE_USER: ${CLICKHOUSE_USER:-analytics}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-analytics_password}
+      SCREENSHOT_SERVICE_URL: http://playwright-screenshot:8000
     ports:
       - "8501:8501"
     healthcheck:
