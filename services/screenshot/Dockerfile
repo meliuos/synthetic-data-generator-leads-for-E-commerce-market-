@@ -12,13 +12,14 @@ RUN apt-get update && apt-get install -y \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy requirements and install Python dependencies
 COPY services/screenshot/requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN python3 -m venv /opt/venv && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
 
 # Install Playwright browsers
-RUN python3 -m playwright install chromium
+RUN /opt/venv/bin/python -m playwright install chromium
 
 # Copy application
 COPY services/screenshot/main.py .
@@ -31,5 +32,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=15s --timeout=5s --retries=3 \
   CMD curl -f http://localhost:8000/health || exit 1
 
-# Use xvfb-run to provide virtual display for Chromium
-CMD ["xvfb-run", "-a", "python3", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/opt/venv/bin/python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
