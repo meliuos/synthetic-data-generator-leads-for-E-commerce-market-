@@ -2,10 +2,12 @@
 __pycache__/
 *.pyc
 .venv/
+.venv-phase4/
 
 # Runtime data
 .tmp/
 .data/
+screenshots/
 
 # Editor
 .DS_Store
