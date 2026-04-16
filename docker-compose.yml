@@ -76,7 +76,7 @@ services:
       retries: 20
 
   rudderstack:
-    image: rudderlabs/rudder-server:latest
+    image: rudderlabs/rudder-server:1.50.0
     depends_on:
       rudder-postgres:
         condition: service_healthy
@@ -88,11 +88,22 @@ services:
       DB_USER: rudder
       DB_PASSWORD: rudder
       DB_NAME: rudder
+      PGHOST: rudder-postgres
+      PGPORT: "5432"
+      PGUSER: rudder
+      PGPASSWORD: rudder
+      PGDATABASE: rudder
       JOBS_DB_HOST: rudder-postgres
       JOBS_DB_PORT: "5432"
       JOBS_DB_USER: rudder
       JOBS_DB_PASSWORD: rudder
+      JOBS_DB_NAME: rudder
       JOBS_DB_DB_NAME: rudder
+      PGNOTIFIER_DB_HOST: rudder-postgres
+      PGNOTIFIER_DB_PORT: "5432"
+      PGNOTIFIER_DB_USER: rudder
+      PGNOTIFIER_DB_PASSWORD: rudder
+      PGNOTIFIER_DB_NAME: rudder
       INSTANCE_ID: dev-rudder
       RSERVER_LOG_LEVEL: INFO
       RSERVER_BACKEND_CONFIG_CONFIG_FROM_FILE: "true"
