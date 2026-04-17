@@ -2,57 +2,48 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-15)
+See: .planning/PROJECT.md (updated 2026-04-18)
 
-**Core value:** Show exactly where users click, scroll, and engage on any page as a live heatmap overlay backed by a scalable real-time event pipeline.
-**Current focus:** Phase 4 in progress (Heatmap Computation and Core Dashboard)
+**Core value:** Capture user behavior signals that identify purchase-intent leads for an e-commerce site — heatmap engagement plus e-commerce intent events — backed by a scalable real-time event pipeline.
+**Current focus:** Milestone v1.1 — defining requirements and roadmap for e-commerce events and lead dataset.
 
 ## Current Position
 
-Phase: 4 of 5 (Heatmap Computation and Core Dashboard)
-Plan: 4 of 4 completed
-Status: Complete
-Last activity: 2026-04-16 - Completed 04-04-PLAN.md
+Milestone: v1.1 — E-commerce Events & Lead Dataset
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining v1.1 requirements
+Last activity: 2026-04-18 — v1.0 archived, v1.1 started
 
-Progress: [██████████] 100% (13 plans completed out of 13 planned)
+Progress: v1.0 complete (13/13 plans shipped); v1.1 in init.
 
 ## Accumulated Decisions
 
+Decisions from v1.0 — still load-bearing for v1.1:
+
 | Date | Plan | Decision | Why it matters |
 | --- | --- | --- | --- |
-| 2026-04-15 | 04-01 | Centralize heatmap SQL in `dashboard/heatmap_queries.py` | Keeps aggregation logic reusable and out of Streamlit UI code |
-| 2026-04-15 | 04-01 | Support URL matching as exact value or wildcard (`*` -> `LIKE`) | Enables flexible page grouping without changing app SQL |
-| 2026-04-15 | 04-01 | Expose only 5% binned dataframe results from helper APIs | Enforces Phase 4 contract: dashboard consumes aggregates, not raw rows |
-| 2026-04-16 | 04-02 | Layer Plotly heatmaps over cached screenshots with `layout.images` | Keeps the screenshot as the rendering surface and aligns bins to the Phase 3 pixels |
-| 2026-04-16 | 04-03 | Normalize URL scope once and reuse it for every mode | Prevents divergent wildcard parsing between the UI and ClickHouse query layer |
-| 2026-04-16 | 04-04 | Render scroll as full-width bands and dispatch views by mode | Preserves one dashboard shell while giving scroll its correct visual semantics |
+| 2026-04-15 | 04-01 | Centralize heatmap SQL in `dashboard/heatmap_queries.py` | v1.1 session stats + click ranking queries belong in this same module |
+| 2026-04-15 | 04-01 | Support URL matching as exact value or wildcard (`*` -> `LIKE`) | v1.1 e-commerce event queries reuse this URL scoping helper |
+| 2026-04-15 | 04-01 | Expose only binned/aggregated dataframes from query helpers | v1.1 panels must follow the same rule — never fetch raw rows into Streamlit |
+| 2026-04-16 | 04-02 | Layer Plotly heatmaps over cached screenshots with `layout.images` | Pattern applies to any future overlay panel |
+| 2026-04-16 | 04-03 | Normalize URL scope once and reuse it for every mode | v1.1 dashboard filters should consume the same normalized scope |
+| 2026-04-16 | 04-04 | Render scroll as full-width bands, dispatch views by mode | Mode-dispatch pattern extends cleanly to new v1.1 panels |
 
 ## Blockers / Concerns
 
-- No product blockers from Phase 4 implementation.
-- Environment note: host Python is externally managed (PEP 668), so dependency verification should continue via isolated virtual environments.
+- No v1.0 blockers.
+- Environment note: host Python is externally managed (PEP 668); dependency verification must continue via isolated venvs (v1.0 used `.venv-phase4`).
+- v1.1 open decisions for roadmapper/plan-phase: Retailrocket table strategy (merge vs. parallel table); typed columns vs. JSON payload for e-commerce fields; demo shop scope for the test SPA.
 
-## Phase Status Snapshot
+## Milestone History
 
-### Phase 1: Streaming and Storage Backbone
-- Status: Complete
-- Delivered: Redpanda + ClickHouse schema + smoke test pipeline
+See [.planning/MILESTONES.md](./MILESTONES.md) for shipped milestones.
 
-### Phase 2: JS Tracker and Event Ingestion Pipeline
-- Status: Planned (not executed)
-- Plans: 02-01, 02-02, 02-03, 02-04
-
-### Phase 3: Screenshot Capture Service
-- Status: Complete
-- Delivered: Screenshot service and dashboard screenshot viewer
-
-### Phase 4: Heatmap Computation and Core Dashboard
-- Status: Complete (4/4 complete)
-- Completed: 04-01 (ClickHouse binning query helpers), 04-02 (overlay rendering), 04-03 (URL and mode controls), 04-04 (scroll/hover views)
-- Remaining: None
+- **v1.0** — Heatmap Core (Complete, 2026-04-16) — Phases 1–4 shipped; Phase 5 dropped, useful parts rolled into v1.1.
 
 ## Session Continuity
 
-Last session: 2026-04-15 23:50:59 UTC
-Stopped at: Completed 04-04-PLAN.md
+Last session: 2026-04-18
+Stopped at: v1.1 initialization in progress (requirements definition next)
 Resume file: None
