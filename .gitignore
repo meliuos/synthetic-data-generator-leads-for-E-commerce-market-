@@ -15,3 +15,5 @@ screenshots/
 
 # Docker override env
 .env
+
+.playwright-mcp/
