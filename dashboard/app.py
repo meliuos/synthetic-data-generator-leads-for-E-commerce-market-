@@ -30,9 +30,9 @@ CLICKHOUSE_PASSWORD = os.getenv("CLICKHOUSE_PASSWORD", "analytics_password")
 
 
 PAGE_URLS = [
-    "https://example.com",
-    "https://example.com/products",
-    "https://example.com/about",
+    "http://host.docker.internal:5000/src/test-spa-page.html",
+    "http://host.docker.internal:5000/src/test-spa-page.html?variant=checkout",
+    "http://host.docker.internal:5000/src/test-spa-page.html?variant=pricing",
 ]
 
 VIEWPORTS = {

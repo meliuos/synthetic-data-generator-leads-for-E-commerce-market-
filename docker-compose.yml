@@ -156,6 +156,8 @@ services:
     volumes:
       - ./screenshots:/screenshots
       - /dev/shm:/dev/shm
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8100:8000"
     healthcheck:
