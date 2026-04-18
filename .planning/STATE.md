@@ -10,18 +10,20 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 ## Current Position
 
 Milestone: v1.1 — E-commerce Events & Lead Dataset
-Phase: Phase 5 in progress (planning)
-Plan: —
-Status: Roadmap complete, Phase 5 planning pending (`/gsd:plan-phase 5`)
-Last activity: 2026-04-18 — v1.1 roadmap written (Phases 5-8), traceability filled in
+Phase: Phase 5 in progress (executing)
+Plan: 05-01 complete (of 3 plans in Phase 5)
+Status: 05-01-PLAN.md executed and committed
+Last activity: 2026-04-18 — Completed 05-01-PLAN.md (v1.1 ClickHouse schema migration)
 
-Progress: v1.0 complete (13/13 plans shipped); v1.1 roadmap locked (0/TBD plans).
+Progress: v1.0 complete (13/13 plans shipped); v1.1 in progress (1/TBD plans).
+
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ (Phase 5: 1/3 plans)
 
 ## v1.1 Phase Status Snapshot
 
 | Phase | Name | Requirements | Status | Next action |
 |-------|------|--------------|--------|-------------|
-| 5 | E-commerce Event Schema | SCHEMA-01, SCHEMA-02, SCHEMA-03 | In progress (planning) | `/gsd:plan-phase 5` |
+| 5 | E-commerce Event Schema | SCHEMA-01, SCHEMA-02, SCHEMA-03 | In progress (executing) | Execute 05-02-PLAN.md, 05-03-PLAN.md |
 | 6 | E-commerce Tracker API | ECOM-01..07 | Not started (blocked on Phase 5) | — |
 | 7 | Retailrocket Import | DATA-01..06 | Not started (blocked on Phase 5; can run parallel with 6) | — |
 | 8 | Rolled-over Dashboard Panels | STATS-01, STATS-02 | Not started (blocked on Phase 5; can run parallel with 6/7) | — |
@@ -48,6 +50,14 @@ Decisions locked during v1.1 roadmap creation:
 | 2026-04-18 | 5 | Schema extension is additive `ALTER TABLE ADD COLUMN` (never rebuild) | Preserves v1.0 data; v1.0 events still insert with new columns read as NULL |
 | 2026-04-18 | 5 | Purchase dedup is defence-in-depth: tracker `localStorage` seen-set + `ReplacingMergeTree(event_time)` projection on `order_id` | Network retries and back-button reloads both handled |
 | 2026-04-18 | 5 | Tracker emits RudderStack/Segment V2 shape; materialized view exposes GA4 aliases | Single tracker-side shape, one translation layer in ClickHouse |
+
+Decisions locked during Phase 5 plan 1 execution:
+
+| Date | Plan | Decision | Why it matters |
+| --- | --- | --- | --- |
+| 2026-04-18 | 05-01 | `ALTER TABLE mv_name MODIFY QUERY` used instead of `CREATE OR REPLACE MATERIALIZED VIEW` (not supported in ClickHouse 24.8) | Future schema plans must use MODIFY QUERY for MV updates on ClickHouse 24.8 |
+| 2026-04-18 | 05-01 | Secondary MVs (purchase_items_mv, orders_mv) as sibling tables — not projections | Projections cannot use ARRAY JOIN or different engines (confirmed in prod); this pattern is now standard for derived views in this project |
+| 2026-04-18 | 05-01 | Migration files numbered sequentially (001_, 002_) — each additive, never modifying prior | Prevents accidental v1.0 breakage; each version's SQL is isolated |
 | 2026-04-18 | 6 | `cart_id` is tracker-maintained in `localStorage` per cart session, rotated after `purchase` (not server-synthesized) | Keeps correlation logic client-side where cart state lives |
 | 2026-04-18 | 6 | Single `purchase` event per order with `products[]` array (not one event per line item) | Matches Segment V2 / GA4 / RudderStack; makes `order_id` the single dedup key |
 | 2026-04-18 | 7 | Retailrocket lands in parallel `retailrocket_raw.*` tables, NOT merged into `click_events` | Keeps live tracker sort-key selectivity intact; isolates CC BY-NC-SA data |
@@ -70,6 +80,6 @@ See [.planning/MILESTONES.md](./MILESTONES.md) for shipped milestones.
 
 ## Session Continuity
 
-Last session: 2026-04-18
-Stopped at: v1.1 roadmap complete, Phase 5 planning is the next action (`/gsd:plan-phase 5`)
-Resume file: None
+Last session: 2026-04-18T23:26:18Z
+Stopped at: Completed 05-01-PLAN.md (v1.1 ClickHouse schema migration)
+Resume file: None — next action is execute 05-02-PLAN.md
