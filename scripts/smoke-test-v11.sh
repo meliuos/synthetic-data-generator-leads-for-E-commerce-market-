@@ -63,7 +63,7 @@ EOF
 # Tests SCHEMA-02 nested extraction: product_id, quantity, price via properties fallback
 # ---------------------------------------------------------------------------
 EVENT_B=$(cat <<EOF
-{"event_id":"evt-b-${SESSION_ID}","event_time":"${TS_BASE}","event_type":"add_to_cart","type":"add_to_cart","page_url":"https://example.com/product/SKU-200","session_id":"${SESSION_ID}","anonymous_user_id":"anon_ecom_smoke","device_type":"desktop","properties":{"product_id":"SKU-200","quantity":3,"price":19.50},"event_payload":"{\"source\":\"smoke-v11\",\"shape\":\"nested\"}"}
+{"event_id":"evt-b-${SESSION_ID}","event_time":"${TS_BASE}","event_type":"add_to_cart","type":"add_to_cart","page_url":"https://example.com/product/SKU-200","session_id":"${SESSION_ID}","anonymous_user_id":"anon_ecom_smoke","device_type":"desktop","properties":{"product_id":"SKU-200","category":"electronics/cables","quantity":3,"price":19.50},"event_payload":"{\"source\":\"smoke-v11\",\"shape\":\"nested\"}"}
 EOF
 )
 
