@@ -10,20 +10,20 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 ## Current Position
 
 Milestone: v1.1 — E-commerce Events & Lead Dataset
-Phase: Phase 5 in progress (executing)
-Plan: 05-03 complete (of 3 plans in Phase 5); 05-02 executing in parallel (wave 2)
-Status: 05-01 and 05-03 committed; 05-02 in progress
-Last activity: 2026-04-18 — Completed 05-03-PLAN.md (v1.1 schema documentation + README pointer)
+Phase: Phase 5 COMPLETE (3/3 plans shipped)
+Plan: 05-02 complete (all 3 plans in Phase 5 done)
+Status: 05-01, 05-02, and 05-03 all committed
+Last activity: 2026-04-19 — Completed 05-02-PLAN.md (v1.1 e-commerce schema smoke test)
 
-Progress: v1.0 complete (13/13 plans shipped); v1.1 in progress (2/TBD plans from Phase 5).
+Progress: v1.0 complete (13/13 plans shipped); v1.1 in progress (Phase 5 done — Phases 6, 7, 8 next).
 
-░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ (Phase 5: 2/3 plans complete; 05-02 in progress)
+███████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░ (Phase 5: 3/3 plans complete)
 
 ## v1.1 Phase Status Snapshot
 
 | Phase | Name | Requirements | Status | Next action |
 |-------|------|--------------|--------|-------------|
-| 5 | E-commerce Event Schema | SCHEMA-01, SCHEMA-02, SCHEMA-03 | In progress (05-01 done, 05-03 done, 05-02 in progress) | Complete 05-02-PLAN.md to finish Phase 5 |
+| 5 | E-commerce Event Schema | SCHEMA-01, SCHEMA-02, SCHEMA-03 | COMPLETE (all 3 plans shipped) | — |
 | 6 | E-commerce Tracker API | ECOM-01..07 | Not started (blocked on Phase 5) | — |
 | 7 | Retailrocket Import | DATA-01..06 | Not started (blocked on Phase 5; can run parallel with 6) | — |
 | 8 | Rolled-over Dashboard Panels | STATS-01, STATS-02 | Not started (blocked on Phase 5; can run parallel with 6/7) | — |
@@ -58,6 +58,14 @@ Decisions locked during Phase 5 plan 3 execution:
 | 2026-04-18 | 05-03 | Per-milestone schema docs at `docs/schema-v<MAJOR>.<MINOR>.md`, always linked from README Notes section | Future milestones (v1.2+) follow same convention — discoverability guaranteed from repo root |
 | 2026-04-18 | 05-03 | Substitution-rationale paragraphs (roadmap vs. implementation) are permanent inline doc in the schema file | Future contributors understand intentional deviations without re-deriving research |
 
+Decisions locked during Phase 5 plan 2 execution:
+
+| Date | Plan | Decision | Why it matters |
+| --- | --- | --- | --- |
+| 2026-04-19 | 05-02 | Each milestone gets its own smoke-test-vX.Y.sh + Makefile target (prior-version targets never modified) | Multi-version non-regression coverage; running all smoke targets sequentially proves additive schema changes don't break prior contracts |
+| 2026-04-19 | 05-02 | Purchase events carry both 'event_time' (for events_mv→click_events) AND 'timestamp' (for purchase_items_mv/orders_mv) | Secondary MVs parse event_time from 'timestamp' (RudderStack V2 field); tracker must emit both fields on purchase events |
+| 2026-04-19 | 05-02 | add_to_cart events should include 'category' in their properties block | Enables SCHEMA-01 c_category coverage assertion; semantically correct per e-commerce event taxonomy |
+
 Decisions locked during Phase 5 plan 1 execution:
 
 | Date | Plan | Decision | Why it matters |
@@ -87,6 +95,6 @@ See [.planning/MILESTONES.md](./MILESTONES.md) for shipped milestones.
 
 ## Session Continuity
 
-Last session: 2026-04-18T23:32:36Z
-Stopped at: Completed 05-03-PLAN.md (v1.1 schema documentation + README pointer)
-Resume file: None — next action is confirm 05-02-PLAN.md completion (wave 2 parallel)
+Last session: 2026-04-19T01:11:00Z
+Stopped at: Completed 05-02-PLAN.md (v1.1 e-commerce schema smoke test) — Phase 5 now fully complete
+Resume file: None — next action is execute Phase 6 (E-commerce Tracker API), Phase 7 (Retailrocket Import), and Phase 8 (Dashboard Panels) in parallel
