@@ -1,6 +1,6 @@
 COMPOSE ?= docker compose
 
-.PHONY: validate up down logs ps schema schema-v11 smoke-test
+.PHONY: validate up down logs ps schema schema-v11 smoke-test smoke-test-v11
 
 validate:
 	$(COMPOSE) config >/dev/null
@@ -25,3 +25,6 @@ schema-v11:
 
 smoke-test:
 	bash scripts/smoke-test.sh
+
+smoke-test-v11:
+	bash scripts/smoke-test-v11.sh
