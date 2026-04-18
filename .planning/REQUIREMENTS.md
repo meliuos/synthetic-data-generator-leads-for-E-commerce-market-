@@ -71,7 +71,7 @@ Scope: capture lead-informative e-commerce events, import Retailrocket dataset, 
 ### Retailrocket Dataset Import
 
 - [ ] **DATA-01**: Retailrocket CSVs (events.csv, item_properties_part1.csv, item_properties_part2.csv, category_tree.csv) are downloadable and documented in the README
-- [ ] **DATA-02**: Import script normalizes Retailrocket rows into a ClickHouse table (`analytics.retailrocket_events` or shared `click_events` — decided at roadmap time) preserving visitor, item, event type, timestamp, and transaction id
+- [ ] **DATA-02**: Import script normalizes Retailrocket rows into ClickHouse parallel tables (`analytics.retailrocket_*` / `retailrocket_raw.*`) preserving visitor, item, event type, timestamp, and transaction id
 - [ ] **DATA-03**: Import is idempotent — rerunning the script doesn't duplicate rows
 - [ ] **DATA-04**: Item properties (category id, price where available) are joinable from the events table
 - [ ] **DATA-05**: Category tree is loaded as a separate ClickHouse table for hierarchical joins
@@ -136,29 +136,29 @@ Deferred to later milestones (v1.2+).
 | HEAT-03 | Phase 4 | Complete |
 | DASH-01 | Phase 4 | Complete |
 | DASH-02 | Phase 4 | Complete |
-| ECOM-01 | v1.1 Phase TBD | Pending |
-| ECOM-02 | v1.1 Phase TBD | Pending |
-| ECOM-03 | v1.1 Phase TBD | Pending |
-| ECOM-04 | v1.1 Phase TBD | Pending |
-| ECOM-05 | v1.1 Phase TBD | Pending |
-| ECOM-06 | v1.1 Phase TBD | Pending |
-| ECOM-07 | v1.1 Phase TBD | Pending |
-| SCHEMA-01 | v1.1 Phase TBD | Pending |
-| SCHEMA-02 | v1.1 Phase TBD | Pending |
-| SCHEMA-03 | v1.1 Phase TBD | Pending |
-| DATA-01 | v1.1 Phase TBD | Pending |
-| DATA-02 | v1.1 Phase TBD | Pending |
-| DATA-03 | v1.1 Phase TBD | Pending |
-| DATA-04 | v1.1 Phase TBD | Pending |
-| DATA-05 | v1.1 Phase TBD | Pending |
-| DATA-06 | v1.1 Phase TBD | Pending |
-| STATS-01 | v1.1 Phase TBD | Pending |
-| STATS-02 | v1.1 Phase TBD | Pending |
+| SCHEMA-01 | Phase 5 (v1.1) | Pending |
+| SCHEMA-02 | Phase 5 (v1.1) | Pending |
+| SCHEMA-03 | Phase 5 (v1.1) | Pending |
+| ECOM-01 | Phase 6 (v1.1) | Pending |
+| ECOM-02 | Phase 6 (v1.1) | Pending |
+| ECOM-03 | Phase 6 (v1.1) | Pending |
+| ECOM-04 | Phase 6 (v1.1) | Pending |
+| ECOM-05 | Phase 6 (v1.1) | Pending |
+| ECOM-06 | Phase 6 (v1.1) | Pending |
+| ECOM-07 | Phase 6 (v1.1) | Pending |
+| DATA-01 | Phase 7 (v1.1) | Pending |
+| DATA-02 | Phase 7 (v1.1) | Pending |
+| DATA-03 | Phase 7 (v1.1) | Pending |
+| DATA-04 | Phase 7 (v1.1) | Pending |
+| DATA-05 | Phase 7 (v1.1) | Pending |
+| DATA-06 | Phase 7 (v1.1) | Pending |
+| STATS-01 | Phase 8 (v1.1) | Pending |
+| STATS-02 | Phase 8 (v1.1) | Pending |
 
 **Coverage:**
 - v1.0: 19 requirements, all shipped (4 dropped from Phase 5, 2 rolled into v1.1)
-- v1.1: 18 requirements, pending phase mapping by roadmapper
+- v1.1: 18 requirements, all mapped to Phases 5-8 (SCHEMA→5, ECOM→6, DATA→7, STATS→8)
 
 ---
 *Requirements defined: 2026-04-15 (v1.0) / 2026-04-18 (v1.1)*
-*Last updated: 2026-04-18 — v1.0 marked complete, v1.1 requirements added*
+*Last updated: 2026-04-18 — v1.1 traceability filled in by roadmapper (Phases 5-8)*
