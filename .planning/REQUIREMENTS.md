@@ -64,9 +64,9 @@ Scope: capture lead-informative e-commerce events, import Retailrocket dataset, 
 
 ### Schema Extension
 
-- [ ] **SCHEMA-01**: `analytics.click_events` gains additive columns for e-commerce fields: `product_id`, `category`, `price`, `quantity`, `order_id`, `cart_value`, `search_query`, `results_count` — all `Nullable` so v1.0 events still insert without change
-- [ ] **SCHEMA-02**: Materialized view extracts the new fields from both flat and `properties` JSON shapes (consistent with v1.0 pattern)
-- [ ] **SCHEMA-03**: Schema migration is idempotent and runs via `make schema` without dropping or rebuilding the table
+- [x] **SCHEMA-01**: `analytics.click_events` gains additive columns for e-commerce fields: `product_id`, `category`, `price`, `quantity`, `order_id`, `cart_value`, `search_query`, `results_count` — all `Nullable` so v1.0 events still insert without change
+- [x] **SCHEMA-02**: Materialized view extracts the new fields from both flat and `properties` JSON shapes (consistent with v1.0 pattern)
+- [x] **SCHEMA-03**: Schema migration is idempotent and runs via `make schema` without dropping or rebuilding the table
 
 ### Retailrocket Dataset Import
 
@@ -136,9 +136,9 @@ Deferred to later milestones (v1.2+).
 | HEAT-03 | Phase 4 | Complete |
 | DASH-01 | Phase 4 | Complete |
 | DASH-02 | Phase 4 | Complete |
-| SCHEMA-01 | Phase 5 (v1.1) | Pending |
-| SCHEMA-02 | Phase 5 (v1.1) | Pending |
-| SCHEMA-03 | Phase 5 (v1.1) | Pending |
+| SCHEMA-01 | Phase 5 (v1.1) | Complete |
+| SCHEMA-02 | Phase 5 (v1.1) | Complete |
+| SCHEMA-03 | Phase 5 (v1.1) | Complete |
 | ECOM-01 | Phase 6 (v1.1) | Pending |
 | ECOM-02 | Phase 6 (v1.1) | Pending |
 | ECOM-03 | Phase 6 (v1.1) | Pending |

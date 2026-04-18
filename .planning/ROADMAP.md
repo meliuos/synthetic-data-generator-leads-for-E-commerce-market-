@@ -27,7 +27,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 ### v1.1 (active)
 
-- [ ] **Phase 5: E-commerce Event Schema** - Additive ClickHouse schema extension with typed e-commerce columns, updated materialized view, `products[]` ARRAY JOIN projection, and `ReplacingMergeTree` orders dedup projection
+- [x] **Phase 5: E-commerce Event Schema** - Additive ClickHouse schema extension with typed e-commerce columns, updated materialized view, `products[]` ARRAY JOIN projection, and `ReplacingMergeTree` orders dedup projection
 - [ ] **Phase 6: E-commerce Tracker API** - 5 new tracker methods (`productView`, `addToCart`, `removeFromCart`, `purchase`, `search`) inheriting consent gate, plus a demo-shop test SPA that exercises every method
 - [ ] **Phase 7: Retailrocket Import** - Download + import scripts that idempotently load events, item_properties (long EAV), and category_tree into parallel `retailrocket_raw.*` tables, verified by a smoke query
 - [ ] **Phase 8: Rolled-over Dashboard Panels** - Session stats panel and click ranking panel added to the existing Streamlit dashboard using the v1.0 `heatmap_queries.py` aggregation pattern
@@ -130,10 +130,12 @@ The v1.1 milestone reuses integer phase numbering 5-8 (continuing from the dropp
   3. After the schema update, `INSERT`ing a v1.0-shape event (no e-commerce fields) still succeeds and all new columns read back `NULL`
   4. `DESCRIBE analytics.click_events` lists the 8 new columns, all `Nullable`, in addition to every v1.0 column (no v1.0 columns removed or retyped)
   5. A projection on the table (inspected via `SELECT * FROM system.projections WHERE table = 'click_events'`) exists for `order_id`-keyed `ReplacingMergeTree(event_time)` dedup
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 05-01: TBD (to be decomposed by `/gsd:plan-phase 5`)
+- [x] 05-01: v1.1 additive schema migration (002_ecommerce_schema.sql + make schema-v11)
+- [x] 05-02: End-to-end smoke test (scripts/smoke-test-v11.sh + make smoke-test-v11)
+- [x] 05-03: Developer-facing schema documentation (docs/schema-v1.1.md + README pointer)
 
 ### Phase 6: E-commerce Tracker API
 **Goal**: The JS tracker exposes 5 new public methods — `productView`, `addToCart`, `removeFromCart`, `purchase`, `search` — that normalize inputs into RudderStack/Segment V2 property shape, inherit the v1.0 consent gate (no emission before opt-in), dedup `purchase` via `localStorage` seen-set on `order_id`, and are exercised end-to-end by an upgraded demo-shop SPA that replaces the existing `src/test-spa-page.html` with product cards, cart controls, a checkout button, and a search bar.
@@ -214,7 +216,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → (v1.0 Phase 5 dropped) 
 | 3. Screenshot Capture Service | v1.0 | 2/2 | Complete | 2026-04-16 |
 | 4. Heatmap Computation and Core Dashboard | v1.0 | 4/4 | Complete | 2026-04-16 |
 | 5 (v1.0). Analytics Features | v1.0 | 0/0 | Dropped — rolled into v1.1 | 2026-04-18 |
-| 5. E-commerce Event Schema | v1.1 | 0/TBD | Not started | - |
+| 5. E-commerce Event Schema | v1.1 | 3/3 | Complete | 2026-04-19 |
 | 6. E-commerce Tracker API | v1.1 | 0/TBD | Not started | - |
 | 7. Retailrocket Import | v1.1 | 0/TBD | Not started | - |
 | 8. Rolled-over Dashboard Panels | v1.1 | 0/TBD | Not started | - |
