@@ -55,3 +55,4 @@ Phase 1 bootstraps the local event backbone:
 - RudderStack file-based config is in `infra/rudderstack/workspaceConfig.json` and forwards events to topic `lead-events`.
 - ClickHouse ingestion schema is defined in `infra/clickhouse/sql/001_events_schema.sql` and creates `events_queue`, `events_mv`, and `click_events`.
 - Smoke test script is `scripts/smoke-test.sh`; it publishes one JSON event to Redpanda and verifies ingestion in under 5 seconds.
+- [Schema v1.1 (e-commerce events)](docs/schema-v1.1.md) — 8 new Nullable columns on `analytics.click_events`, per-line-item `purchase_items` table, server-side `orders` dedup, GA4 alias view. Apply via `make schema-v11`; verify via `make smoke-test-v11`.
