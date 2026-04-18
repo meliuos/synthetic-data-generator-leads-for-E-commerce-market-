@@ -1,6 +1,6 @@
 COMPOSE ?= docker compose
 
-.PHONY: validate up down logs ps schema smoke-test
+.PHONY: validate up down logs ps schema schema-v11 smoke-test
 
 validate:
 	$(COMPOSE) config >/dev/null
@@ -19,6 +19,9 @@ ps:
 
 schema:
 	bash scripts/apply-schema.sh
+
+schema-v11:
+	bash scripts/apply-schema.sh infra/clickhouse/sql/002_ecommerce_schema.sql
 
 smoke-test:
 	bash scripts/smoke-test.sh
