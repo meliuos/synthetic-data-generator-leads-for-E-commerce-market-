@@ -78,16 +78,18 @@ PARTITION BY toYYYYMM(event_time)
 ORDER BY order_id;
 
 -- ---------------------------------------------------------------------------
--- ARTIFACT 4: Updated main MV — atomic swap (CREATE OR REPLACE, no ingest gap)
+-- ARTIFACT 4: Updated main MV — atomic in-place query replacement, no ingest gap
 -- (SCHEMA-02)
+-- ClickHouse 24.8 does not support CREATE OR REPLACE MATERIALIZED VIEW;
+-- the correct atomic MV update is ALTER TABLE ... MODIFY QUERY.
+-- This rewrites only the SELECT definition — the MV object, its internal
+-- storage, and the Kafka consumer group offset on events_queue are all
+-- preserved. Second run: MODIFY QUERY is always idempotent (re-applying the
+-- same query is a no-op at the query-plan level).
 -- The WITH block lines 47-79 of 001_events_schema.sql are reproduced VERBATIM
 -- for all v1.0 fields; the 8 new e-commerce extractions are appended after.
--- Kafka consumer offsets on analytics.events_queue are PRESERVED because
--- events_queue is never dropped.
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE MATERIALIZED VIEW analytics.events_mv
-TO analytics.click_events
-AS
+ALTER TABLE analytics.events_mv MODIFY QUERY
 WITH
     ifNull(JSONExtractRaw(raw_message, 'properties'), '{}') AS properties_raw,
     ifNull(JSONExtractString(raw_message, 'event_id'), '') AS flat_event_id,
