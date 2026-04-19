@@ -30,7 +30,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: E-commerce Event Schema** - Additive ClickHouse schema extension with typed e-commerce columns, updated materialized view, `products[]` ARRAY JOIN projection, and `ReplacingMergeTree` orders dedup projection
 - [x] **Phase 6: E-commerce Tracker API** - 5 new tracker methods (`productView`, `addToCart`, `removeFromCart`, `purchase`, `search`) inheriting consent gate, plus a demo-shop test SPA that exercises every method
 - [ ] **Phase 7: Retailrocket Import** - Download + import scripts that idempotently load events, item_properties (long EAV), and category_tree into parallel `retailrocket_raw.*` tables, verified by a smoke query
-- [ ] **Phase 8: Rolled-over Dashboard Panels** - Session stats panel and click ranking panel added to the existing Streamlit dashboard using the v1.0 `heatmap_queries.py` aggregation pattern
+- [x] **Phase 8: Rolled-over Dashboard Panels** - Session stats panel and click ranking panel added to the existing Streamlit dashboard using the v1.0 `heatmap_queries.py` aggregation pattern
 
 ## Phase Details
 
@@ -199,10 +199,10 @@ Plans:
   3. The click ranking panel renders a table of up to 10 rows showing CSS element selector + click count, ordered by count descending, for the selected URL scope
   4. The aggregation for both panels happens in ClickHouse (verifiable by inspecting the query in `heatmap_queries.py` — `GROUP BY` / `count()` / `avg()` in the SQL) — no raw rows fetched to Python
   5. Both panels render a graceful empty state ("No sessions yet" / "No clicks yet") when the selected URL scope has zero matching rows, instead of erroring
-**Plans**: TBD
+**Plans**: 1
 
 Plans:
-- [ ] 08-01: TBD (to be decomposed by `/gsd:plan-phase 8`)
+- [x] 08-01: Implement ClickHouse-aggregated session stats + top-clicked selector panels in Streamlit dashboard with exact/wildcard URL scope semantics and empty states
 
 ## Progress
 
@@ -217,6 +217,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → (v1.0 Phase 5 dropped) 
 | 4. Heatmap Computation and Core Dashboard | v1.0 | 4/4 | Complete | 2026-04-16 |
 | 5 (v1.0). Analytics Features | v1.0 | 0/0 | Dropped — rolled into v1.1 | 2026-04-18 |
 | 5. E-commerce Event Schema | v1.1 | 3/3 | Complete | 2026-04-19 |
-| 6. E-commerce Tracker API | v1.1 | 0/TBD | Not started | - |
+| 6. E-commerce Tracker API | v1.1 | 1/1 | Complete | 2026-04-19 |
 | 7. Retailrocket Import | v1.1 | 0/TBD | Not started | - |
-| 8. Rolled-over Dashboard Panels | v1.1 | 0/TBD | Not started | - |
+| 8. Rolled-over Dashboard Panels | v1.1 | 1/1 | Complete | 2026-04-19 |

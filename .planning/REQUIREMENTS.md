@@ -79,8 +79,8 @@ Scope: capture lead-informative e-commerce events, import Retailrocket dataset, 
 
 ### Dashboard Panels (rolled from dropped Phase 5)
 
-- [ ] **STATS-01**: Session stats panel displays total sessions, average scroll depth, bounce rate, and total events for the selected page scope — aggregated in ClickHouse, not Python
-- [ ] **STATS-02**: Click ranking panel shows the top 10 most-clicked CSS element selectors on the selected page scope
+- [x] **STATS-01**: Session stats panel displays total sessions, average scroll depth, bounce rate, and total events for the selected page scope — aggregated in ClickHouse, not Python
+- [x] **STATS-02**: Click ranking panel shows the top 10 most-clicked CSS element selectors on the selected page scope
 
 ## v2 / Future Requirements
 
@@ -152,8 +152,8 @@ Deferred to later milestones (v1.2+).
 | DATA-04 | Phase 7 (v1.1) | Pending |
 | DATA-05 | Phase 7 (v1.1) | Pending |
 | DATA-06 | Phase 7 (v1.1) | Pending |
-| STATS-01 | Phase 8 (v1.1) | Pending |
-| STATS-02 | Phase 8 (v1.1) | Pending |
+| STATS-01 | Phase 8 (v1.1) | Complete |
+| STATS-02 | Phase 8 (v1.1) | Complete |
 
 **Coverage:**
 - v1.0: 19 requirements, all shipped (4 dropped from Phase 5, 2 rolled into v1.1)

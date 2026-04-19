@@ -5,19 +5,19 @@
 See: .planning/PROJECT.md (updated 2026-04-18)
 
 **Core value:** Capture user behavior signals that identify purchase-intent leads for an e-commerce site — heatmap engagement plus e-commerce intent events — backed by a scalable real-time event pipeline.
-**Current focus:** Milestone v1.1 — E-commerce Events & Lead Dataset. Phases 5 and 6 complete; Phases 7 and 8 remain.
+**Current focus:** Milestone v1.1 — E-commerce Events & Lead Dataset. Phases 5, 6, and 8 complete; Phase 7 remains.
 
 ## Current Position
 
 Milestone: v1.1 — E-commerce Events & Lead Dataset
-Phase: Phase 6 COMPLETE (1/1 plans shipped)
-Plan: 06-01 COMPLETE
-Status: ECOM-01..07 implemented and validated with unit tests + demo SPA update
-Last activity: 2026-04-19 — Phase 6 implemented; REQUIREMENTS/ROADMAP updated
+Phase: Phase 8 COMPLETE (1/1 plans shipped)
+Plan: 08-01 COMPLETE
+Status: STATS-01..02 implemented with ClickHouse-side aggregation + query tests
+Last activity: 2026-04-19 — Phase 8 implemented; ROADMAP/REQUIREMENTS/STATE updated
 
-Progress: v1.0 complete (13/13 plans shipped); v1.1 in progress (Phases 5 and 6 done — Phases 7 and 8 next).
+Progress: v1.0 complete (13/13 plans shipped); v1.1 in progress (Phases 5, 6, and 8 done — Phase 7 next).
 
-██████████████████████████████░░░░░░░░░░░░░░░░░░░░ (v1.1: 4/6 plans complete)
+█████████████████████████████████████████░░░░░░░░░░ (v1.1: 5/6 plans complete)
 
 ## v1.1 Phase Status Snapshot
 
@@ -25,8 +25,8 @@ Progress: v1.0 complete (13/13 plans shipped); v1.1 in progress (Phases 5 and 6 
 |-------|------|--------------|--------|-------------|
 | 5 | E-commerce Event Schema | SCHEMA-01, SCHEMA-02, SCHEMA-03 | COMPLETE (all 3 plans shipped) | — |
 | 6 | E-commerce Tracker API | ECOM-01..07 | COMPLETE (06-01 shipped) | — |
-| 7 | Retailrocket Import | DATA-01..06 | Not started (blocked on Phase 5; can run parallel with 6) | — |
-| 8 | Rolled-over Dashboard Panels | STATS-01, STATS-02 | Not started (blocked on Phase 5; can run parallel with 6/7) | — |
+| 7 | Retailrocket Import | DATA-01..06 | Not started (blocked on Phase 5; can run parallel with 6/8) | Next planned execution target |
+| 8 | Rolled-over Dashboard Panels | STATS-01, STATS-02 | COMPLETE (08-01 shipped) | — |
 
 **Parallelism:** Once Phase 5 ships, Phases 6, 7, and 8 can execute in parallel. Phase 8 touches only v1.0 heatmap columns so it has no logical dependency on 6 or 7.
 
@@ -79,12 +79,14 @@ Decisions locked during Phase 5 plan 1 execution:
 | 2026-04-18 | 7 | Idempotency = `load_batch_id` short-circuit + ClickHouse `insert_deduplication_token` per chunk (no Python-side dedup) | Standard ClickHouse idiom; no custom dedup state to maintain |
 | 2026-04-18 | 7 | Raw Retailrocket CSVs NOT committed to git; `download.sh` uses Kaggle API + user-local `~/.kaggle/kaggle.json` | License hygiene (CC BY-NC-SA); repo stays small |
 | 2026-04-19 | 6 | Tracker emits both top-level e-commerce fields and duplicated `properties` payload for each e-commerce event | Ensures ClickHouse MV compatibility across flat and nested JSON shapes in downstream ingestion |
+| 2026-04-19 | 8 | Session stats average scroll depth is computed from per-session max `scroll_pct` then averaged across sessions | Prevents heavy-scrolling sessions from overweighting the metric compared to session-level intent analysis |
+| 2026-04-19 | 8 | Phase 8 panels are query-helper backed and return aggregate dataframes only (no raw event rows in Streamlit) | Preserves established v1.0 performance and layering constraints for dashboard rendering |
 
 ## Blockers / Concerns
 
 - No v1.0 blockers.
 - Environment note: host Python is externally managed (PEP 668); dependency verification must continue via isolated venvs (v1.0 used `.venv-phase4`).
-- Phase 7 pre-flight requires a manual Kaggle license screenshot (committed under `.planning/research/v1.1/evidence/kaggle-license.png`) — first task of Phase 7, not a roadmap blocker.
+- Phase 7 pre-flight requires a manual Kaggle license screenshot (committed under `.planning/research/v1.1/evidence/kaggle-license.png`) — first task of Phase 7.
 - Phase 5 open question resolved at roadmap time: `cart_id` is tracker-maintained (per EVENTS.md recommendation).
 
 ## Milestone History
@@ -96,6 +98,6 @@ See [.planning/MILESTONES.md](./MILESTONES.md) for shipped milestones.
 
 ## Session Continuity
 
-Last session: 2026-04-19
-Stopped at: Phase 6 complete (06-01 shipped). Next action: implement Phase 7 and/or Phase 8 in parallel.
+Last session: 2026-04-19 16:21 UTC
+Stopped at: Completed 08-01-PLAN.md. Next action: execute/document Phase 7 completion.
 Resume file: None
