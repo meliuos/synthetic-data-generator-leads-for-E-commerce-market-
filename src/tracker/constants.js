@@ -7,7 +7,12 @@ const EVENT_TYPES = {
   CLICK: 'click',
   SCROLL: 'scroll',
   MOUSEMOVE: 'mousemove',
-  PAGE_VIEW: 'page_view'
+  PAGE_VIEW: 'page_view',
+  PRODUCT_VIEW: 'product_view',
+  ADD_TO_CART: 'add_to_cart',
+  REMOVE_FROM_CART: 'remove_from_cart',
+  PURCHASE: 'purchase',
+  SEARCH: 'search'
 };
 
 const THROTTLE_INTERVALS = {

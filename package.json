@@ -4,7 +4,7 @@
   "description": "JavaScript tracker for capturing user interactions and events",
   "main": "src/tracker/index.js",
   "scripts": {
-    "test": "jest",
+    "test": "node --test",
     "dev": "node --watch",
     "smoke-test": "bash scripts/smoke-test.sh"
   },
