@@ -5,26 +5,26 @@
 See: .planning/PROJECT.md (updated 2026-04-18)
 
 **Core value:** Capture user behavior signals that identify purchase-intent leads for an e-commerce site — heatmap engagement plus e-commerce intent events — backed by a scalable real-time event pipeline.
-**Current focus:** Milestone v1.1 — E-commerce Events & Lead Dataset. Phase 5 complete & verified; Phases 6/7/8 can execute in parallel next.
+**Current focus:** Milestone v1.1 — E-commerce Events & Lead Dataset. Phases 5 and 6 complete; Phases 7 and 8 remain.
 
 ## Current Position
 
 Milestone: v1.1 — E-commerce Events & Lead Dataset
-Phase: Phase 5 COMPLETE (3/3 plans shipped, goal verified 7/7)
-Plan: —
-Status: Phase 5 verified passed; SCHEMA-01/02/03 marked Complete in REQUIREMENTS.md
-Last activity: 2026-04-19 — Phase 5 verification passed; ROADMAP/REQUIREMENTS updated
+Phase: Phase 6 COMPLETE (1/1 plans shipped)
+Plan: 06-01 COMPLETE
+Status: ECOM-01..07 implemented and validated with unit tests + demo SPA update
+Last activity: 2026-04-19 — Phase 6 implemented; REQUIREMENTS/ROADMAP updated
 
-Progress: v1.0 complete (13/13 plans shipped); v1.1 in progress (Phase 5 done — Phases 6, 7, 8 next).
+Progress: v1.0 complete (13/13 plans shipped); v1.1 in progress (Phases 5 and 6 done — Phases 7 and 8 next).
 
-███████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░ (Phase 5: 3/3 plans complete)
+██████████████████████████████░░░░░░░░░░░░░░░░░░░░ (v1.1: 4/6 plans complete)
 
 ## v1.1 Phase Status Snapshot
 
 | Phase | Name | Requirements | Status | Next action |
 |-------|------|--------------|--------|-------------|
 | 5 | E-commerce Event Schema | SCHEMA-01, SCHEMA-02, SCHEMA-03 | COMPLETE (all 3 plans shipped) | — |
-| 6 | E-commerce Tracker API | ECOM-01..07 | Not started (blocked on Phase 5) | — |
+| 6 | E-commerce Tracker API | ECOM-01..07 | COMPLETE (06-01 shipped) | — |
 | 7 | Retailrocket Import | DATA-01..06 | Not started (blocked on Phase 5; can run parallel with 6) | — |
 | 8 | Rolled-over Dashboard Panels | STATS-01, STATS-02 | Not started (blocked on Phase 5; can run parallel with 6/7) | — |
 
@@ -78,6 +78,7 @@ Decisions locked during Phase 5 plan 1 execution:
 | 2026-04-18 | 7 | Retailrocket lands in parallel `retailrocket_raw.*` tables, NOT merged into `click_events` | Keeps live tracker sort-key selectivity intact; isolates CC BY-NC-SA data |
 | 2026-04-18 | 7 | Idempotency = `load_batch_id` short-circuit + ClickHouse `insert_deduplication_token` per chunk (no Python-side dedup) | Standard ClickHouse idiom; no custom dedup state to maintain |
 | 2026-04-18 | 7 | Raw Retailrocket CSVs NOT committed to git; `download.sh` uses Kaggle API + user-local `~/.kaggle/kaggle.json` | License hygiene (CC BY-NC-SA); repo stays small |
+| 2026-04-19 | 6 | Tracker emits both top-level e-commerce fields and duplicated `properties` payload for each e-commerce event | Ensures ClickHouse MV compatibility across flat and nested JSON shapes in downstream ingestion |
 
 ## Blockers / Concerns
 
@@ -96,5 +97,5 @@ See [.planning/MILESTONES.md](./MILESTONES.md) for shipped milestones.
 ## Session Continuity
 
 Last session: 2026-04-19
-Stopped at: Phase 5 complete, verified, and roadmap updated. Next action: plan Phase 6 (`/gsd:discuss-phase 6` or `/gsd:plan-phase 6`). Phases 6, 7, 8 can run in parallel after planning.
+Stopped at: Phase 6 complete (06-01 shipped). Next action: implement Phase 7 and/or Phase 8 in parallel.
 Resume file: None
