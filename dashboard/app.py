@@ -8,7 +8,11 @@ import requests
 import streamlit as st
 
 from heatmap_filters import normalize_url_filter
-from heatmap_queries import fetch_heatmap_aggregates_for
+from heatmap_queries import (
+    fetch_click_ranking,
+    fetch_heatmap_aggregates_for,
+    fetch_session_stats,
+)
 from heatmap_views import build_heatmap_figure_for_mode
 
 st.set_page_config(page_title="Lead Intelligence", layout="wide")
@@ -110,6 +114,50 @@ def load_heatmap_dataframe(
         return pd.DataFrame(columns=["x_bin_pct", "y_bin_pct", "event_count"])
 
 
+def load_session_stats_dataframe(url_filter: str):
+    """Fetch one-row aggregate session stats for the selected URL scope."""
+    client = get_clickhouse_client()
+    if client is None:
+        return pd.DataFrame(
+            [
+                {
+                    "total_sessions": 0,
+                    "avg_scroll_depth_pct": 0.0,
+                    "bounce_rate_pct": 0.0,
+                    "total_events": 0,
+                }
+            ]
+        )
+
+    try:
+        return fetch_session_stats(client, url_filter)
+    except Exception as exc:
+        st.error(f"Failed to load session stats: {exc}")
+        return pd.DataFrame(
+            [
+                {
+                    "total_sessions": 0,
+                    "avg_scroll_depth_pct": 0.0,
+                    "bounce_rate_pct": 0.0,
+                    "total_events": 0,
+                }
+            ]
+        )
+
+
+def load_click_ranking_dataframe(url_filter: str):
+    """Fetch top-clicked CSS selectors for the selected URL scope."""
+    client = get_clickhouse_client()
+    if client is None:
+        return pd.DataFrame(columns=["element_selector", "click_count"])
+
+    try:
+        return fetch_click_ranking(client, url_filter, limit=10)
+    except Exception as exc:
+        st.error(f"Failed to load click ranking: {exc}")
+        return pd.DataFrame(columns=["element_selector", "click_count"])
+
+
 def render_heatmap_tab(
     selected_url: str,
     viewport_label: str,
@@ -158,6 +206,35 @@ wildcard_filter = st.text_input(
 selected_mode_label = st.radio("Heatmap mode", list(HEATMAP_MODES.keys()), horizontal=True)
 selected_event_type = HEATMAP_MODES[selected_mode_label]
 active_url_filter = normalize_url_filter(selected_url, wildcard_filter)
+
+session_stats_df = load_session_stats_dataframe(active_url_filter)
+click_ranking_df = load_click_ranking_dataframe(active_url_filter)
+
+st.subheader("Session Stats")
+if getattr(session_stats_df, "empty", True) or int(session_stats_df.iloc[0]["total_sessions"]) == 0:
+    st.info("No sessions yet")
+else:
+    stats_row = session_stats_df.iloc[0]
+    stat_col1, stat_col2, stat_col3, stat_col4 = st.columns(4)
+    stat_col1.metric("Total sessions", int(stats_row["total_sessions"]))
+    stat_col2.metric("Avg scroll depth", f"{float(stats_row['avg_scroll_depth_pct']):.2f}%")
+    stat_col3.metric(
+        "Bounce rate",
+        f"{float(stats_row['bounce_rate_pct']):.2f}%",
+        help="Bounce rate = sessions with exactly one page_view event / total sessions for the selected URL scope.",
+    )
+    stat_col4.metric("Total events", int(stats_row["total_events"]))
+
+st.subheader("Top Clicked Selectors")
+if getattr(click_ranking_df, "empty", True):
+    st.info("No clicks yet")
+else:
+    ranking_display_df = click_ranking_df.rename(
+        columns={"element_selector": "CSS selector", "click_count": "Clicks"}
+    )
+    st.dataframe(ranking_display_df, use_container_width=True, hide_index=True)
+
+st.write("---")
 
 # Refresh button
 col1, col2 = st.columns([1, 3])
