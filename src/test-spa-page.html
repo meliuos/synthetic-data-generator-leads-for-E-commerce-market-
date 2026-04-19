@@ -118,6 +118,42 @@
         .consent-banner button.decline:hover {
             background-color: #5a6268;
         }
+        .shop-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+        .product-card {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 16px;
+            background: #fafafa;
+        }
+        .product-card h3 {
+            margin: 0 0 8px;
+            font-size: 18px;
+        }
+        .product-meta {
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .cart-list {
+            margin: 10px 0;
+            padding-left: 18px;
+        }
+        .search-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .search-controls input {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            min-width: 240px;
+        }
     </style>
 </head>
 <body>
@@ -144,6 +180,24 @@
         <button id="btn-test2">Test Button 2</button>
         <button id="btn-test3">Test Button 3</button>
         <button id="btn-manual" class="danger">Manual Flush to RudderStack</button>
+    </div>
+
+    <div class="section">
+        <h2>Demo Shop (Phase 6)</h2>
+        <p>This section exercises all e-commerce APIs: product view, add to cart, remove from cart, purchase, and search.</p>
+
+        <div class="search-controls">
+            <input id="search-input" type="text" placeholder="Search products (e.g. headphones)" />
+            <button id="btn-search">Search</button>
+            <span id="search-result-label">No search yet</span>
+        </div>
+
+        <div class="shop-grid" id="shop-grid"></div>
+
+        <h3>Cart</h3>
+        <ul class="cart-list" id="cart-list"></ul>
+        <div class="status-line">Cart Total: <span id="cart-total">0.00</span> USD</div>
+        <button id="btn-checkout" class="danger">Checkout (purchase)</button>
     </div>
 
     <div class="section">
@@ -255,6 +309,9 @@
             sessionData: { maxScrollPct: 0, startTime: new Date().toISOString() },
             throttleData: { lastMousemoveTime: 0 },
             sessionId: null,
+            cartId: null,
+            cartItems: new Map(),
+            seenOrders: new Set(),
             rudderStackActive: false,
             totalFlushed: 0,
 
@@ -359,12 +416,153 @@
                 return pageViewEvent;
             },
 
+            queueEvent(event) {
+                this.eventQueue.push({
+                    ...event,
+                    timestamp: new Date().toISOString()
+                });
+            },
+
+            productView(payload) {
+                if (!hasConsent()) return null;
+                if (!payload || !payload.product_id) return null;
+
+                const event = {
+                    type: 'product_view',
+                    product_id: payload.product_id,
+                    category: payload.category || null,
+                    price: Number(payload.price) || 0,
+                    currency: payload.currency || 'USD'
+                };
+
+                event.properties = { ...event };
+                this.queueEvent(event);
+                return event;
+            },
+
+            addToCart(payload) {
+                if (!hasConsent()) return null;
+                if (!payload || !payload.product_id) return null;
+
+                const quantity = Math.max(1, Number(payload.quantity) || 1);
+                const item = this.cartItems.get(payload.product_id) || {
+                    product_id: payload.product_id,
+                    category: payload.category || null,
+                    price: Number(payload.price) || 0,
+                    quantity: 0,
+                    currency: payload.currency || 'USD'
+                };
+
+                item.quantity += quantity;
+                item.price = Number(payload.price) || item.price;
+                item.category = payload.category || item.category;
+                item.currency = payload.currency || item.currency;
+                this.cartItems.set(item.product_id, item);
+
+                const event = {
+                    type: 'add_to_cart',
+                    cart_id: this.cartId,
+                    product_id: item.product_id,
+                    category: item.category,
+                    quantity,
+                    price: item.price,
+                    currency: item.currency,
+                    cart_value: this.getCartTotal()
+                };
+
+                event.properties = { ...event };
+                this.queueEvent(event);
+                return event;
+            },
+
+            removeFromCart(payload) {
+                if (!hasConsent()) return null;
+                if (!payload || !payload.product_id) return null;
+
+                const quantity = Math.max(1, Number(payload.quantity) || 1);
+                const item = this.cartItems.get(payload.product_id);
+                if (item) {
+                    item.quantity = Math.max(0, item.quantity - quantity);
+                    if (item.quantity === 0) this.cartItems.delete(payload.product_id);
+                    else this.cartItems.set(payload.product_id, item);
+                }
+
+                const event = {
+                    type: 'remove_from_cart',
+                    cart_id: this.cartId,
+                    product_id: payload.product_id,
+                    quantity,
+                    cart_value: this.getCartTotal()
+                };
+
+                event.properties = { ...event };
+                this.queueEvent(event);
+                return event;
+            },
+
+            purchase(payload) {
+                if (!hasConsent()) return null;
+                if (!payload || !payload.order_id) return null;
+                if (this.seenOrders.has(payload.order_id)) return null;
+
+                const products = Array.from(this.cartItems.values()).map((item) => ({
+                    product_id: item.product_id,
+                    category: item.category,
+                    price: item.price,
+                    quantity: item.quantity
+                }));
+
+                const total = Number(payload.total || this.getCartTotal()).toFixed(2);
+                const event = {
+                    type: 'purchase',
+                    order_id: payload.order_id,
+                    cart_id: this.cartId,
+                    total: Number(total),
+                    revenue: Number(total),
+                    currency: payload.currency || 'USD',
+                    products
+                };
+
+                event.properties = { ...event };
+                this.seenOrders.add(payload.order_id);
+                this.queueEvent(event);
+
+                this.cartItems.clear();
+                this.cartId = `cart_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+                return event;
+            },
+
+            search(payload) {
+                if (!hasConsent()) return null;
+                const query = payload && typeof payload.query === 'string' ? payload.query.trim() : '';
+                if (!query) return null;
+
+                const event = {
+                    type: 'search',
+                    query,
+                    results_count: Number(payload.results_count) || 0
+                };
+
+                event.properties = { ...event };
+                this.queueEvent(event);
+                return event;
+            },
+
+            getCartTotal() {
+                let total = 0;
+                this.cartItems.forEach((item) => {
+                    total += (item.price || 0) * (item.quantity || 0);
+                });
+                return Number(total.toFixed(2));
+            },
+
             generateSessionId() {
                 return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
             },
 
             init() {
                 this.sessionId = this.generateSessionId();
+                this.cartId = `cart_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
                 this.capturePageView();
                 console.log('[Tracker] Initialized with session:', this.sessionId);
             },
@@ -391,6 +589,7 @@
                             userId: 'lead-tracker',
                             anonymousId: this.sessionId,
                             properties: {
+                                ...event.properties,
                                 x_pct: event.x_pct,
                                 y_pct: event.y_pct,
                                 scroll_pct: event.scroll_pct,
@@ -468,6 +667,84 @@
             tracker.flushToRudderStack();
         });
 
+        const catalog = [
+            { product_id: 'SKU-100', name: 'Headphones', category: 'electronics/headphones', price: 99.99, currency: 'USD' },
+            { product_id: 'SKU-200', name: 'USB-C Cable', category: 'electronics/cables', price: 19.5, currency: 'USD' },
+            { product_id: 'SKU-300', name: 'Wireless Mouse', category: 'electronics/accessories', price: 49.0, currency: 'USD' }
+        ];
+
+        function renderShop() {
+            const grid = document.getElementById('shop-grid');
+            grid.innerHTML = catalog.map((item) => `
+                <article class="product-card" data-product-id="${item.product_id}">
+                    <h3>${item.name}</h3>
+                    <div class="product-meta">${item.category}</div>
+                    <div class="product-meta">$${item.price.toFixed(2)} ${item.currency}</div>
+                    <button data-action="view" data-product-id="${item.product_id}">View Product</button>
+                    <button data-action="add" data-product-id="${item.product_id}">Add To Cart</button>
+                    <button data-action="remove" data-product-id="${item.product_id}">Remove 1</button>
+                </article>
+            `).join('');
+        }
+
+        function renderCart() {
+            const cartList = document.getElementById('cart-list');
+            const items = Array.from(tracker.cartItems.values());
+
+            if (items.length === 0) {
+                cartList.innerHTML = '<li>Cart is empty</li>';
+            } else {
+                cartList.innerHTML = items.map((item) => (
+                    `<li>${item.product_id} x ${item.quantity} = $${(item.price * item.quantity).toFixed(2)}</li>`
+                )).join('');
+            }
+
+            document.getElementById('cart-total').textContent = tracker.getCartTotal().toFixed(2);
+        }
+
+        document.getElementById('shop-grid').addEventListener('click', (e) => {
+            const action = e.target.getAttribute('data-action');
+            const productId = e.target.getAttribute('data-product-id');
+            if (!action || !productId) return;
+
+            const product = catalog.find((p) => p.product_id === productId);
+            if (!product) return;
+
+            if (action === 'view') tracker.productView(product);
+            if (action === 'add') tracker.addToCart({ ...product, quantity: 1 });
+            if (action === 'remove') tracker.removeFromCart({ product_id: product.product_id, quantity: 1 });
+
+            renderCart();
+            updateDebugPanel();
+        });
+
+        document.getElementById('btn-search').addEventListener('click', () => {
+            const query = document.getElementById('search-input').value;
+            const results = catalog.filter((item) => {
+                return item.name.toLowerCase().includes(query.toLowerCase());
+            }).length;
+
+            const event = tracker.search({ query, results_count: results });
+            if (event) {
+                document.getElementById('search-result-label').textContent = `Search '${query}' -> ${results} results`;
+                updateDebugPanel();
+            }
+        });
+
+        document.getElementById('btn-checkout').addEventListener('click', () => {
+            const orderId = `ORDER-${Date.now()}`;
+            const event = tracker.purchase({
+                order_id: orderId,
+                total: tracker.getCartTotal(),
+                currency: 'USD'
+            });
+
+            if (event) {
+                renderCart();
+                updateDebugPanel();
+            }
+        });
+
         // ============================================================================
         // UI Updates
         // ============================================================================
@@ -532,6 +809,8 @@
         updateDebugPanel();
         updateConsentStatus();
         checkRudderStack();
+        renderShop();
+        renderCart();
 
         // Check RudderStack periodically
         setTimeout(checkRudderStack, 2000);
