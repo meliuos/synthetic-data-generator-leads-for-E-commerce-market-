@@ -1,6 +1,9 @@
 COMPOSE ?= docker compose
+RETAILROCKET_VENV ?= .venv-retailrocket
+RETAILROCKET_PYTHON ?= $(RETAILROCKET_VENV)/bin/python
+RETAILROCKET_PIP ?= $(RETAILROCKET_VENV)/bin/pip
 
-.PHONY: validate up down logs ps schema schema-v11 schema-retailrocket smoke-test smoke-test-v11 retailrocket-download retailrocket-import retailrocket-smoke retailrocket-reload
+.PHONY: validate up down logs ps schema schema-v11 schema-retailrocket smoke-test smoke-test-v11 retailrocket-setup retailrocket-download retailrocket-import retailrocket-smoke retailrocket-reload
 
 validate:
 	$(COMPOSE) config >/dev/null
@@ -32,11 +35,16 @@ smoke-test-v11:
 schema-retailrocket:
 	bash scripts/apply-schema.sh infra/clickhouse/sql/003_retailrocket_schema.sql
 
+retailrocket-setup:
+	python3 -m venv $(RETAILROCKET_VENV)
+	$(RETAILROCKET_PIP) install --upgrade pip
+	$(RETAILROCKET_PIP) install kaggle -r scripts/retailrocket/requirements.txt
+
 retailrocket-download:
-	bash scripts/download_retailrocket.sh
+	PATH="$(PWD)/$(RETAILROCKET_VENV)/bin:$$PATH" bash scripts/download_retailrocket.sh
 
 retailrocket-import:
-	python3 scripts/retailrocket/import.py
+	$(RETAILROCKET_PYTHON) scripts/retailrocket/import.py
 
 retailrocket-smoke:
 	docker compose exec -T clickhouse clickhouse-client --user "$${CLICKHOUSE_USER:-analytics}" --password "$${CLICKHOUSE_PASSWORD:-analytics_password}" --multiquery < scripts/retailrocket/smoke.sql

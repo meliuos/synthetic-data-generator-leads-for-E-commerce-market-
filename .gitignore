@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 .venv/
 .venv-phase4/
+.venv-retailrocket/
 
 # Runtime data
 .tmp/

@@ -60,9 +60,9 @@ Phase 1 bootstraps the local event backbone:
 - The demo shop at `src/test-spa-page.html` exercises all 5 e-commerce APIs with product cards, cart controls, checkout, and search.
 - `search` emits only on explicit submit (Search button / Enter), never on keystroke input.
 - Retailrocket import (Phase 7):
-   1. Add Kaggle API credentials at `~/.kaggle/kaggle.json`.
-   2. Run `make retailrocket-download` (downloads exactly 4 CSV files into `data/retailrocket/`).
-   3. Run `make schema-retailrocket` to create `retailrocket_raw.*` tables and helper views.
-   4. Install importer dependency once: `python3 -m pip install -r scripts/retailrocket/requirements.txt`.
+   1. Run `make retailrocket-setup` once (creates `.venv-retailrocket`, installs `kaggle` + importer deps; avoids system pip/PEP 668 issues).
+   2. Add Kaggle API credentials at `~/.kaggle/kaggle.json` (permissions `chmod 600 ~/.kaggle/kaggle.json`).
+   3. Run `make retailrocket-download` (downloads exactly 4 CSV files into `data/retailrocket/`).
+   4. Run `make schema-retailrocket` to create `retailrocket_raw.*` tables and helper views.
    5. Run `make retailrocket-import` then `make retailrocket-smoke`.
    6. Re-running `make retailrocket-import` is idempotent (load batch short-circuit + insert dedup tokens).
