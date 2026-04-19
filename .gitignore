@@ -17,3 +17,7 @@ screenshots/
 .env
 
 .playwright-mcp/
+
+# Retailrocket dataset (license-restricted raw CSVs)
+data/retailrocket/*
+!data/retailrocket/README.md

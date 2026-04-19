@@ -1,6 +1,6 @@
 COMPOSE ?= docker compose
 
-.PHONY: validate up down logs ps schema schema-v11 smoke-test smoke-test-v11
+.PHONY: validate up down logs ps schema schema-v11 schema-retailrocket smoke-test smoke-test-v11 retailrocket-download retailrocket-import retailrocket-smoke retailrocket-reload
 
 validate:
 	$(COMPOSE) config >/dev/null
@@ -28,3 +28,17 @@ smoke-test:
 
 smoke-test-v11:
 	bash scripts/smoke-test-v11.sh
+
+schema-retailrocket:
+	bash scripts/apply-schema.sh infra/clickhouse/sql/003_retailrocket_schema.sql
+
+retailrocket-download:
+	bash scripts/download_retailrocket.sh
+
+retailrocket-import:
+	python3 scripts/retailrocket/import.py
+
+retailrocket-smoke:
+	docker compose exec -T clickhouse clickhouse-client --user "$${CLICKHOUSE_USER:-analytics}" --password "$${CLICKHOUSE_PASSWORD:-analytics_password}" --multiquery < scripts/retailrocket/smoke.sql
+
+retailrocket-reload: schema-retailrocket retailrocket-import retailrocket-smoke
