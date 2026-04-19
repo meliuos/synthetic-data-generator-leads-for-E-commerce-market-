@@ -54,13 +54,13 @@ Scope: capture lead-informative e-commerce events, import Retailrocket dataset, 
 
 ### E-commerce Event Capture
 
-- [ ] **ECOM-01**: Tracker exposes `tracker.productView({product_id, category, price, currency})` and emits a `product_view` event
-- [ ] **ECOM-02**: Tracker exposes `tracker.addToCart({product_id, quantity, price})` and emits an `add_to_cart` event
-- [ ] **ECOM-03**: Tracker exposes `tracker.removeFromCart({product_id, quantity})` and emits a `remove_from_cart` event
-- [ ] **ECOM-04**: Tracker exposes `tracker.purchase({order_id, total, items, currency})` and emits a `purchase` event
-- [ ] **ECOM-05**: Tracker exposes `tracker.search({query, results_count})` and emits a `search` event
-- [ ] **ECOM-06**: All 5 e-commerce APIs inherit the existing consent gate (no capture before opt-in)
-- [ ] **ECOM-07**: Test SPA page exercises every e-commerce API with real click affordances (product cards, cart, checkout, search bar)
+- [x] **ECOM-01**: Tracker exposes `tracker.productView({product_id, category, price, currency})` and emits a `product_view` event
+- [x] **ECOM-02**: Tracker exposes `tracker.addToCart({product_id, quantity, price})` and emits an `add_to_cart` event
+- [x] **ECOM-03**: Tracker exposes `tracker.removeFromCart({product_id, quantity})` and emits a `remove_from_cart` event
+- [x] **ECOM-04**: Tracker exposes `tracker.purchase({order_id, total, items, currency})` and emits a `purchase` event
+- [x] **ECOM-05**: Tracker exposes `tracker.search({query, results_count})` and emits a `search` event
+- [x] **ECOM-06**: All 5 e-commerce APIs inherit the existing consent gate (no capture before opt-in)
+- [x] **ECOM-07**: Test SPA page exercises every e-commerce API with real click affordances (product cards, cart, checkout, search bar)
 
 ### Schema Extension
 
@@ -139,13 +139,13 @@ Deferred to later milestones (v1.2+).
 | SCHEMA-01 | Phase 5 (v1.1) | Complete |
 | SCHEMA-02 | Phase 5 (v1.1) | Complete |
 | SCHEMA-03 | Phase 5 (v1.1) | Complete |
-| ECOM-01 | Phase 6 (v1.1) | Pending |
-| ECOM-02 | Phase 6 (v1.1) | Pending |
-| ECOM-03 | Phase 6 (v1.1) | Pending |
-| ECOM-04 | Phase 6 (v1.1) | Pending |
-| ECOM-05 | Phase 6 (v1.1) | Pending |
-| ECOM-06 | Phase 6 (v1.1) | Pending |
-| ECOM-07 | Phase 6 (v1.1) | Pending |
+| ECOM-01 | Phase 6 (v1.1) | Complete |
+| ECOM-02 | Phase 6 (v1.1) | Complete |
+| ECOM-03 | Phase 6 (v1.1) | Complete |
+| ECOM-04 | Phase 6 (v1.1) | Complete |
+| ECOM-05 | Phase 6 (v1.1) | Complete |
+| ECOM-06 | Phase 6 (v1.1) | Complete |
+| ECOM-07 | Phase 6 (v1.1) | Complete |
 | DATA-01 | Phase 7 (v1.1) | Pending |
 | DATA-02 | Phase 7 (v1.1) | Pending |
 | DATA-03 | Phase 7 (v1.1) | Pending |
@@ -161,4 +161,4 @@ Deferred to later milestones (v1.2+).
 
 ---
 *Requirements defined: 2026-04-15 (v1.0) / 2026-04-18 (v1.1)*
-*Last updated: 2026-04-18 — v1.1 traceability filled in by roadmapper (Phases 5-8)*
+*Last updated: 2026-04-19 — Phase 6 completed (ECOM-01..07 marked complete)*

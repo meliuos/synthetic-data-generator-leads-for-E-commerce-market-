@@ -28,7 +28,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 ### v1.1 (active)
 
 - [x] **Phase 5: E-commerce Event Schema** - Additive ClickHouse schema extension with typed e-commerce columns, updated materialized view, `products[]` ARRAY JOIN projection, and `ReplacingMergeTree` orders dedup projection
-- [ ] **Phase 6: E-commerce Tracker API** - 5 new tracker methods (`productView`, `addToCart`, `removeFromCart`, `purchase`, `search`) inheriting consent gate, plus a demo-shop test SPA that exercises every method
+- [x] **Phase 6: E-commerce Tracker API** - 5 new tracker methods (`productView`, `addToCart`, `removeFromCart`, `purchase`, `search`) inheriting consent gate, plus a demo-shop test SPA that exercises every method
 - [ ] **Phase 7: Retailrocket Import** - Download + import scripts that idempotently load events, item_properties (long EAV), and category_tree into parallel `retailrocket_raw.*` tables, verified by a smoke query
 - [ ] **Phase 8: Rolled-over Dashboard Panels** - Session stats panel and click ranking panel added to the existing Streamlit dashboard using the v1.0 `heatmap_queries.py` aggregation pattern
 
@@ -155,10 +155,10 @@ Plans:
   3. Submitting a query in the demo shop's search bar produces exactly one `search` row per submit with `search_query` and `results_count` populated; typing without submitting produces zero rows
   4. With the cookie consent banner rejected, clicking Add-to-Cart / Checkout / Search / visiting a product card produces zero rows in ClickHouse across all 5 e-commerce event types (consent gate inherited)
   5. The demo SPA contains at minimum 3 product cards, a visible cart with add/remove affordances, a search bar, and a checkout button — every one of the 5 tracker methods can be exercised without opening DevTools
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 06-01: TBD (to be decomposed by `/gsd:plan-phase 6`)
+- [x] 06-01: Implement tracker e-commerce public APIs + consent inheritance + demo-shop SPA affordances
 
 ### Phase 7: Retailrocket Import
 **Goal**: The Retailrocket open-source dataset (events.csv + item_properties_part1.csv + item_properties_part2.csv + category_tree.csv) loads idempotently into a parallel `analytics.retailrocket_*` table set (separate from live `click_events`), via a committed download script (`scripts/download_retailrocket.sh` using the Kaggle API with user-local `~/.kaggle/kaggle.json`) and an import script that uses ClickHouse `insert_deduplication_token` keyed on per-file-chunk hashes for server-side idempotency — no raw CSVs committed to git, smoke query verifying row counts and event-type distribution matches the source.
