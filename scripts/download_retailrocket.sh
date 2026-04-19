@@ -9,9 +9,10 @@ if ! command -v kaggle >/dev/null 2>&1; then
   exit 1
 fi
 
-if [[ ! -f "$HOME/.kaggle/kaggle.json" ]]; then
-  echo "Missing Kaggle credentials at ~/.kaggle/kaggle.json" >&2
-  exit 1
+if [[ -f "$HOME/.kaggle/kaggle.json" ]]; then
+  echo "Using Kaggle credentials from ~/.kaggle/kaggle.json"
+else
+  echo "No ~/.kaggle/kaggle.json found; attempting public dataset download via Kaggle CLI."
 fi
 
 mkdir -p "$DATA_DIR"

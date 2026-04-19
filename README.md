@@ -61,7 +61,7 @@ Phase 1 bootstraps the local event backbone:
 - `search` emits only on explicit submit (Search button / Enter), never on keystroke input.
 - Retailrocket import (Phase 7):
    1. Run `make retailrocket-setup` once (creates `.venv-retailrocket`, installs `kaggle` + importer deps; avoids system pip/PEP 668 issues).
-   2. Add Kaggle API credentials at `~/.kaggle/kaggle.json` (permissions `chmod 600 ~/.kaggle/kaggle.json`).
+   2. Optional but recommended: add Kaggle API credentials at `~/.kaggle/kaggle.json` (permissions `chmod 600 ~/.kaggle/kaggle.json`). For this public dataset, the CLI can also download without local credentials.
    3. Run `make retailrocket-download` (downloads exactly 4 CSV files into `data/retailrocket/`).
    4. Run `make schema-retailrocket` to create `retailrocket_raw.*` tables and helper views.
    5. Run `make retailrocket-import` then `make retailrocket-smoke`.
