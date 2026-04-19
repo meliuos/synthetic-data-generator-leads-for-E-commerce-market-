@@ -135,10 +135,89 @@ def fetch_heatmap_aggregates_for(
     return fetch_heatmap_aggregates(client, config)
 
 
+def build_session_stats_query(url_filter: str) -> Tuple[str, Dict[str, Any]]:
+    """Build a parameterized ClickHouse SQL query for session-level stats."""
+    url_predicate, params = build_url_predicate(url_filter)
+
+    sql = f"""
+    WITH scoped_events AS (
+        SELECT
+            session_id,
+            event_type,
+            scroll_pct
+        FROM analytics.click_events
+        WHERE {url_predicate}
+            AND session_id IS NOT NULL
+            AND session_id != ''
+    ),
+    session_rollup AS (
+        SELECT
+            session_id,
+            countIf(event_type = 'page_view') AS page_view_count,
+            maxIf(scroll_pct, event_type = 'scroll' AND scroll_pct IS NOT NULL) AS max_scroll_pct
+        FROM scoped_events
+        GROUP BY session_id
+    ),
+    events_agg AS (
+        SELECT count() AS total_events
+        FROM scoped_events
+    )
+    SELECT
+        count() AS total_sessions,
+        round(ifNull(avg(ifNull(max_scroll_pct, 0.0)), 0.0), 2) AS avg_scroll_depth_pct,
+        round(
+            if(count() = 0, 0.0, (countIf(page_view_count = 1) * 100.0) / count()),
+            2
+        ) AS bounce_rate_pct,
+        (SELECT total_events FROM events_agg) AS total_events
+    FROM session_rollup
+    """.strip()
+
+    return sql, params
+
+
+def fetch_session_stats(client: Any, url_filter: str):
+    """Execute the session stats aggregation and return one-row dataframe."""
+    sql, params = build_session_stats_query(url_filter)
+    return client.query_df(sql, parameters=params)
+
+
+def build_click_ranking_query(url_filter: str, limit: int = 10) -> Tuple[str, Dict[str, Any]]:
+    """Build a parameterized ClickHouse SQL query for top-clicked selectors."""
+    url_predicate, params = build_url_predicate(url_filter)
+    params["limit"] = max(1, int(limit))
+
+    sql = f"""
+    SELECT
+        element_selector,
+        count() AS click_count
+    FROM analytics.click_events
+    WHERE {url_predicate}
+        AND event_type = 'click'
+        AND element_selector IS NOT NULL
+        AND element_selector != ''
+    GROUP BY element_selector
+    ORDER BY click_count DESC, element_selector ASC
+    LIMIT %(limit)s
+    """.strip()
+
+    return sql, params
+
+
+def fetch_click_ranking(client: Any, url_filter: str, limit: int = 10):
+    """Execute click ranking aggregation and return up-to-limit rows."""
+    sql, params = build_click_ranking_query(url_filter=url_filter, limit=limit)
+    return client.query_df(sql, parameters=params)
+
+
 __all__ = [
     "ALLOWED_EVENT_TYPES",
     "HeatmapQueryConfig",
     "build_heatmap_aggregate_query",
+    "build_session_stats_query",
+    "build_click_ranking_query",
     "fetch_heatmap_aggregates",
     "fetch_heatmap_aggregates_for",
+    "fetch_session_stats",
+    "fetch_click_ranking",
 ]
