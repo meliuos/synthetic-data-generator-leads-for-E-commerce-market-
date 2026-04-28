@@ -1,7 +1,13 @@
 COMPOSE ?= docker compose
 RETAILROCKET_VENV ?= .venv-retailrocket
-RETAILROCKET_PYTHON ?= $(RETAILROCKET_VENV)/bin/python
-RETAILROCKET_PIP ?= $(RETAILROCKET_VENV)/bin/pip
+
+ifeq ($(OS),Windows_NT)
+	RETAILROCKET_PYTHON ?= $(RETAILROCKET_VENV)/Scripts/python
+	RETAILROCKET_PIP ?= $(RETAILROCKET_VENV)/Scripts/pip
+else
+	RETAILROCKET_PYTHON ?= $(RETAILROCKET_VENV)/bin/python
+	RETAILROCKET_PIP ?= $(RETAILROCKET_VENV)/bin/pip
+endif
 
 .PHONY: validate up down logs ps schema schema-v11 schema-retailrocket smoke-test smoke-test-v11 retailrocket-setup retailrocket-download retailrocket-import retailrocket-smoke retailrocket-reload
 
@@ -41,7 +47,7 @@ retailrocket-setup:
 	$(RETAILROCKET_PIP) install kaggle -r scripts/retailrocket/requirements.txt
 
 retailrocket-download:
-	PATH="$(PWD)/$(RETAILROCKET_VENV)/bin:$$PATH" bash scripts/download_retailrocket.sh
+	$(RETAILROCKET_PYTHON) scripts/retailrocket/download.py
 
 retailrocket-import:
 	$(RETAILROCKET_PYTHON) scripts/retailrocket/import.py

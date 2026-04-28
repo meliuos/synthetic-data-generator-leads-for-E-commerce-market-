@@ -7,7 +7,8 @@ v1.0 shipped the heatmap core in five phases (Phase 5 dropped at pivot): Redpand
 ## Milestones
 
 - Shipped **v1.0 Heatmap Core** — Phases 1–4 (shipped 2026-04-16; Phase 5 dropped)
-- Active **v1.1 E-commerce Events & Lead Dataset** — Phases 5–8 (in progress)
+- Shipped **v1.1 E-commerce Events & Lead Dataset** — Phases 5–8 (shipped 2026-04-28)
+- Active **v1.2 Lead Scoring & Identification** — Phase 9 (in progress)
 
 ## Phases
 
@@ -25,12 +26,16 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Heatmap Computation and Core Dashboard** - Streamlit dashboard renders click/scroll/hover heatmaps as Plotly overlays on screenshots with URL filter and type switcher
 - [~] **Phase 5: Analytics Features** - Dropped — rolled into v1.1 (see MILESTONES.md)
 
-### v1.1 (active)
+### v1.1 (shipped)
 
 - [x] **Phase 5: E-commerce Event Schema** - Additive ClickHouse schema extension with typed e-commerce columns, updated materialized view, `products[]` ARRAY JOIN projection, and `ReplacingMergeTree` orders dedup projection
 - [x] **Phase 6: E-commerce Tracker API** - 5 new tracker methods (`productView`, `addToCart`, `removeFromCart`, `purchase`, `search`) inheriting consent gate, plus a demo-shop test SPA that exercises every method
-- [ ] **Phase 7: Retailrocket Import** - Download + import scripts that idempotently load events, item_properties (long EAV), and category_tree into parallel `retailrocket_raw.*` tables, verified by a smoke query
+- [x] **Phase 7: Retailrocket Import** - Download + import scripts that idempotently load events, item_properties (long EAV), and category_tree into parallel `retailrocket_raw.*` tables, verified by a smoke query
 - [x] **Phase 8: Rolled-over Dashboard Panels** - Session stats panel and click ranking panel added to the existing Streamlit dashboard using the v1.0 `heatmap_queries.py` aggregation pattern
+
+### v1.2 (active)
+
+- [x] **Phase 9: Rule-based Lead Intelligence Dashboard** - Direct ClickHouse heuristic aggregation of Retailrocket data to identify hot leads and cart abandoners, displayed in a new interactive Streamlit dashboard panel
 
 ## Phase Details
 
@@ -178,10 +183,10 @@ Plans:
   4. `SELECT event_type, count() FROM retailrocket_raw.events GROUP BY event_type` returns exactly `view: 2,664,312`, `addtocart: 69,332`, `transaction: 22,457` — the source distribution is preserved row-for-row
   5. Joining `retailrocket_raw.events` against the `item_latest` view (which reads from `item_properties`) on `itemid` returns a non-null `categoryid` for more than 90% of the event rows (spot check that the EAV load is joinable, not just counted)
   6. The raw CSVs are listed in `.gitignore` and `git status` after a fresh download shows them as ignored (no accidental commit of CC BY-NC-SA material)
-**Plans**: TBD
+**Plans**: 1
 
 Plans:
-- [ ] 07-01: TBD (to be decomposed by `/gsd:plan-phase 7`)
+- [x] 07-01: Document and execute the Retailrocket dataset import (download, ingest, and idempotency validation)
 
 ### Phase 8: Rolled-over Dashboard Panels
 **Goal**: The existing Streamlit dashboard at `dashboard/app.py` gains two new panels — a session stats panel (total sessions, avg scroll depth, bounce rate, total events for the selected URL scope) and a click ranking panel (top 10 CSS element selectors on the selected URL scope) — both aggregated in ClickHouse via the existing `dashboard/heatmap_queries.py` module pattern, never fetching raw rows into Python.
@@ -204,6 +209,24 @@ Plans:
 Plans:
 - [x] 08-01: Implement ClickHouse-aggregated session stats + top-clicked selector panels in Streamlit dashboard with exact/wildcard URL scope semantics and empty states
 
+## v1.2 Phases
+
+### Phase 9: Rule-based Lead Intelligence Dashboard
+**Goal**: Implement a rule-based lead scoring engine natively in ClickHouse using the Retailrocket dataset, and expose an interactive "Lead Intelligence" dashboard panel in Streamlit that ranks high-intent users and flags cart abandoners.
+**Depends on**: Phase 7 (Retailrocket data must be in ClickHouse)
+**Requirements**: LEAD-01, LEAD-02
+**Notes for implementers**:
+  - The scoring algorithm is applied as a ClickHouse heuristic calculation to avoid fetching raw rows into Python. Base heuristic: `views*1 + add_to_carts*20 + purchases*100`.
+  - The Streamlit dashboard uses Tabs to keep the v1.0 Heatmap completely intact while introducing the new v1.2 interface.
+**Success Criteria** (what must be TRUE):
+  1. The Streamlit dashboard exposes a "Lead Intelligence" tab.
+  2. The tab queries `retailrocket_raw.events` directly and aggregates the top leads dynamically based on a user-controlled slider.
+  3. "Cart abandoners" (users with add-to-carts but zero purchases) are flagged visually in the dataframe.
+**Plans**: 1
+
+Plans:
+- [x] 09-01: Streamlit dashboard integration with ClickHouse lead scoring queries
+
 ## Progress
 
 **Execution Order:**
@@ -218,5 +241,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → (v1.0 Phase 5 dropped) 
 | 5 (v1.0). Analytics Features | v1.0 | 0/0 | Dropped — rolled into v1.1 | 2026-04-18 |
 | 5. E-commerce Event Schema | v1.1 | 3/3 | Complete | 2026-04-19 |
 | 6. E-commerce Tracker API | v1.1 | 1/1 | Complete | 2026-04-19 |
-| 7. Retailrocket Import | v1.1 | 0/TBD | Not started | - |
+| 7. Retailrocket Import | v1.1 | 1/1 | Complete | 2026-04-28 |
 | 8. Rolled-over Dashboard Panels | v1.1 | 1/1 | Complete | 2026-04-19 |
+| 9. Rule-based Lead Intelligence | v1.2 | 1/1 | Complete | 2026-04-28 |

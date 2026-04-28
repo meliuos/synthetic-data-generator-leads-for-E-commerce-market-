@@ -14,6 +14,7 @@ from heatmap_queries import (
     fetch_session_stats,
 )
 from heatmap_views import build_heatmap_figure_for_mode
+from lead_queries import fetch_top_leads, fetch_lead_summary
 
 st.set_page_config(page_title="Lead Intelligence", layout="wide")
 
@@ -193,101 +194,163 @@ def render_heatmap_tab(
         st.error(f"Failed to render {viewport_label.lower()} heatmap: {exc}")
 
 # Main dashboard layout
-st.subheader("📸 Page Screenshot Viewer")
+main_tab1, main_tab2 = st.tabs(["Heatmap & Stats", "Lead Intelligence (Synthetic)"])
 
-# URL selection
-selected_url = st.selectbox("Select page to view:", PAGE_URLS, index=0)
-wildcard_filter = st.text_input(
-    "Optional wildcard scope",
-    value="",
-    placeholder="/product/*",
-    help="Leave blank to query only the selected page, or use * to scope a family of pages.",
-)
-selected_mode_label = st.radio("Heatmap mode", list(HEATMAP_MODES.keys()), horizontal=True)
-selected_event_type = HEATMAP_MODES[selected_mode_label]
-active_url_filter = normalize_url_filter(selected_url, wildcard_filter)
-
-session_stats_df = load_session_stats_dataframe(active_url_filter)
-click_ranking_df = load_click_ranking_dataframe(active_url_filter)
-
-st.subheader("Session Stats")
-if getattr(session_stats_df, "empty", True) or int(session_stats_df.iloc[0]["total_sessions"]) == 0:
-    st.info("No sessions yet")
-else:
-    stats_row = session_stats_df.iloc[0]
-    stat_col1, stat_col2, stat_col3, stat_col4 = st.columns(4)
-    stat_col1.metric("Total sessions", int(stats_row["total_sessions"]))
-    stat_col2.metric("Avg scroll depth", f"{float(stats_row['avg_scroll_depth_pct']):.2f}%")
-    stat_col3.metric(
-        "Bounce rate",
-        f"{float(stats_row['bounce_rate_pct']):.2f}%",
-        help="Bounce rate = sessions with exactly one page_view event / total sessions for the selected URL scope.",
+with main_tab1:
+    st.subheader("📸 Page Screenshot Viewer")
+    
+    # URL selection
+    selected_url = st.selectbox("Select page to view:", PAGE_URLS, index=0)
+    wildcard_filter = st.text_input(
+        "Optional wildcard scope",
+        value="",
+        placeholder="/product/*",
+        help="Leave blank to query only the selected page, or use * to scope a family of pages.",
     )
-    stat_col4.metric("Total events", int(stats_row["total_events"]))
-
-st.subheader("Top Clicked Selectors")
-if getattr(click_ranking_df, "empty", True):
-    st.info("No clicks yet")
-else:
-    ranking_display_df = click_ranking_df.rename(
-        columns={"element_selector": "CSS selector", "click_count": "Clicks"}
-    )
-    st.dataframe(ranking_display_df, use_container_width=True, hide_index=True)
-
-st.write("---")
-
-# Refresh button
-col1, col2 = st.columns([1, 3])
-with col1:
-    refresh_button = st.button("🔄 Refresh Screenshot", key="refresh_btn")
-with col2:
-    if st.session_state.screenshot_timestamp:
-        st.caption(f"Last updated: {st.session_state.screenshot_timestamp}")
+    selected_mode_label = st.radio("Heatmap mode", list(HEATMAP_MODES.keys()), horizontal=True)
+    selected_event_type = HEATMAP_MODES[selected_mode_label]
+    active_url_filter = normalize_url_filter(selected_url, wildcard_filter)
+    
+    session_stats_df = load_session_stats_dataframe(active_url_filter)
+    click_ranking_df = load_click_ranking_dataframe(active_url_filter)
+    
+    st.subheader("Session Stats")
+    if getattr(session_stats_df, "empty", True) or int(session_stats_df.iloc[0]["total_sessions"]) == 0:
+        st.info("No sessions yet")
     else:
-        st.caption("Not yet captured")
-
-# Refresh action
-if refresh_button:
-    with st.spinner("Capturing screenshot... this may take up to 30 seconds"):
-        result = capture_screenshot(selected_url)
-        if result:
-            st.session_state.screenshot_timestamp = datetime.now().strftime("%H:%M:%S")
-            cached_str = "cached" if result.get("cached") else "freshly captured"
-            st.success(f"✓ Screenshot {cached_str}")
-            st.rerun()
-
-# Display screenshots
-st.write("---")
-
-try:
-    desktop_tab, mobile_tab = st.tabs(list(VIEWPORTS.keys()))
-
-    with desktop_tab:
-        desktop_width, desktop_height = VIEWPORTS["Desktop (1440px)"]
-        render_heatmap_tab(
-            selected_url,
-            "Desktop (1440px)",
-            desktop_width,
-            desktop_height,
-            active_url_filter,
-            selected_event_type,
-            selected_mode_label,
+        stats_row = session_stats_df.iloc[0]
+        stat_col1, stat_col2, stat_col3, stat_col4 = st.columns(4)
+        stat_col1.metric("Total sessions", int(stats_row["total_sessions"]))
+        stat_col2.metric("Avg scroll depth", f"{float(stats_row['avg_scroll_depth_pct']):.2f}%")
+        stat_col3.metric(
+            "Bounce rate",
+            f"{float(stats_row['bounce_rate_pct']):.2f}%",
+            help="Bounce rate = sessions with exactly one page_view event / total sessions for the selected URL scope.",
         )
-
-    with mobile_tab:
-        mobile_width, mobile_height = VIEWPORTS["Mobile (390px)"]
-        render_heatmap_tab(
-            selected_url,
-            "Mobile (390px)",
-            mobile_width,
-            mobile_height,
-            active_url_filter,
-            selected_event_type,
-            selected_mode_label,
+        stat_col4.metric("Total events", int(stats_row["total_events"]))
+    
+    st.subheader("Top Clicked Selectors")
+    if getattr(click_ranking_df, "empty", True):
+        st.info("No clicks yet")
+    else:
+        ranking_display_df = click_ranking_df.rename(
+            columns={"element_selector": "CSS selector", "click_count": "Clicks"}
         )
+        st.dataframe(ranking_display_df, use_container_width=True, hide_index=True)
+    
+    st.write("---")
+
+    # Refresh button
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        refresh_button = st.button("🔄 Refresh Screenshot", key="refresh_btn")
+    with col2:
+        if st.session_state.screenshot_timestamp:
+            st.caption(f"Last updated: {st.session_state.screenshot_timestamp}")
+        else:
+            st.caption("Not yet captured")
+    
+    # Refresh action
+    if refresh_button:
+        with st.spinner("Capturing screenshot... this may take up to 30 seconds"):
+            result = capture_screenshot(selected_url)
+            if result:
+                st.session_state.screenshot_timestamp = datetime.now().strftime("%H:%M:%S")
+                cached_str = "cached" if result.get("cached") else "freshly captured"
+                st.success(f"✓ Screenshot {cached_str}")
+                st.rerun()
+    
+    # Display screenshots
+    st.write("---")
+
+    try:
+        desktop_tab, mobile_tab = st.tabs(list(VIEWPORTS.keys()))
+    
+        with desktop_tab:
+            desktop_width, desktop_height = VIEWPORTS["Desktop (1440px)"]
+            render_heatmap_tab(
+                selected_url,
+                "Desktop (1440px)",
+                desktop_width,
+                desktop_height,
+                active_url_filter,
+                selected_event_type,
+                selected_mode_label,
+            )
+    
+        with mobile_tab:
+            mobile_width, mobile_height = VIEWPORTS["Mobile (390px)"]
+            render_heatmap_tab(
+                selected_url,
+                "Mobile (390px)",
+                mobile_width,
+                mobile_height,
+                active_url_filter,
+                selected_event_type,
+                selected_mode_label,
+            )
+                
+    except Exception as e:
+        st.error(f"Failed to load screenshots: {e}")
+    
+    st.write("---")
+    st.info("💡 Screenshots provide the canvas for Plotly heatmap overlays in Phase 4. Refresh as needed to capture updated page versions.")
+
+with main_tab2:
+    st.subheader("🎯 Lead Qualification Engine")
+    st.caption("Powered by Retailrocket synthetic data (20M+ rows)")
+    
+    # Score Threshold Slider
+    min_score = st.slider(
+        "Lead Qualification Threshold (Points)", 
+        min_value=1, 
+        max_value=500, 
+        value=50, 
+        step=1,
+        help="Views=1, AddToCart=20, Transaction=100. Higher threshold filters for hotter leads."
+    )
+    
+    client = get_clickhouse_client()
+    if client:
+        # Load Summary Metrics
+        summary = fetch_lead_summary(client, min_score)
+        
+        m_col1, m_col2, m_col3 = st.columns(3)
+        m_col1.metric("Total Unique Visitors", f"{summary['total_visitors']:,}")
+        m_col2.metric("Qualified Leads", f"{summary['qualified_leads']:,}", delta=f"score >= {min_score}", delta_color="normal")
+        m_col3.metric("Cart Abandoners", f"{summary['total_abandoners']:,}", help="Added to cart but 0 transactions")
+        
+        st.write("---")
+        st.subheader("🔥 Top 100 Qualified Leads")
+        
+        with st.spinner("Scoring millions of rows in ClickHouse..."):
+            leads_df = fetch_top_leads(client, min_score=min_score, limit=100)
             
-except Exception as e:
-    st.error(f"Failed to load screenshots: {e}")
-
-st.write("---")
-st.info("💡 Screenshots provide the canvas for Plotly heatmap overlays in Phase 4. Refresh as needed to capture updated page versions.")
+        if leads_df.empty:
+            st.info("No leads found matching this threshold.")
+        else:
+            # Format the dataframe for display
+            display_df = leads_df.copy()
+            
+            # Map columns to user-friendly names
+            display_df = display_df.rename(columns={
+                "visitor_id": "Visitor ID",
+                "views": "Product Views",
+                "add_to_carts": "Add To Carts",
+                "purchases": "Purchases",
+                "lead_score": "Lead Score",
+                "cart_abandoned": "Cart Abandoned?"
+            })
+            
+            # Apply color mapping for cart abandonment
+            def highlight_abandoned(val):
+                color = '#ff4b4b' if val == 1 else ''
+                return f'background-color: {color}'
+                
+            st.dataframe(
+                display_df.style.map(highlight_abandoned, subset=['Cart Abandoned?']),
+                use_container_width=True,
+                hide_index=True
+            )
+    else:
+        st.error("Cannot connect to ClickHouse to calculate lead scores.")

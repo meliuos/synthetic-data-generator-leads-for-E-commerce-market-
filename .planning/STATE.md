@@ -25,8 +25,9 @@ Progress: v1.0 complete (13/13 plans shipped); v1.1 in progress (Phases 5, 6, an
 |-------|------|--------------|--------|-------------|
 | 5 | E-commerce Event Schema | SCHEMA-01, SCHEMA-02, SCHEMA-03 | COMPLETE (all 3 plans shipped) | — |
 | 6 | E-commerce Tracker API | ECOM-01..07 | COMPLETE (06-01 shipped) | — |
-| 7 | Retailrocket Import | DATA-01..06 | Not started (blocked on Phase 5; can run parallel with 6/8) | Next planned execution target |
+| 7 | Retailrocket Import | DATA-01..06 | COMPLETE (07-01 shipped) | — |
 | 8 | Rolled-over Dashboard Panels | STATS-01, STATS-02 | COMPLETE (08-01 shipped) | — |
+| 9 | Rule-based Lead Intelligence | LEAD-01..02 | COMPLETE (09-01 shipped) | — |
 
 **Parallelism:** Once Phase 5 ships, Phases 6, 7, and 8 can execute in parallel. Phase 8 touches only v1.0 heatmap columns so it has no logical dependency on 6 or 7.
 
@@ -98,6 +99,6 @@ See [.planning/MILESTONES.md](./MILESTONES.md) for shipped milestones.
 
 ## Session Continuity
 
-Last session: 2026-04-19 16:21 UTC
-Stopped at: Completed 08-01-PLAN.md. Next action: execute/document Phase 7 completion.
+Last session: 2026-04-28 12:18 UTC
+Stopped at: Completed 09-01-PLAN.md (Lead Intelligence Dashboard). Next action: LEAD-03 (ML Lead Scoring).
 Resume file: None
