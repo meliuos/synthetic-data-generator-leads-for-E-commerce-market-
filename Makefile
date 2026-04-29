@@ -3,7 +3,7 @@ RETAILROCKET_VENV ?= .venv-retailrocket
 RETAILROCKET_PYTHON ?= $(RETAILROCKET_VENV)/bin/python
 RETAILROCKET_PIP ?= $(RETAILROCKET_VENV)/bin/pip
 
-.PHONY: validate up down logs ps schema schema-v11 schema-retailrocket schema-v12 schema-phase10 smoke-test smoke-test-v11 smoke-test-v12 smoke-test-phase10 retailrocket-setup retailrocket-download retailrocket-import retailrocket-smoke retailrocket-reload
+.PHONY: validate up down logs ps schema schema-v11 schema-retailrocket schema-v12 schema-phase10 schema-phase11 smoke-test smoke-test-v11 smoke-test-v12 smoke-test-phase10 smoke-test-phase11 score-sessions ml-setup retailrocket-setup retailrocket-download retailrocket-import retailrocket-smoke retailrocket-reload
 
 validate:
 	$(COMPOSE) config >/dev/null
@@ -36,16 +36,30 @@ schema-retailrocket:
 	bash scripts/apply-schema.sh infra/clickhouse/sql/003_retailrocket_schema.sql
 
 schema-v12:
-	bash scripts/apply-schema.sh infra/clickhouse/sql/004_phase9_foundation.sql
+	bash scripts/apply-schema.sh infra/clickhouse/sql/004_foundation.sql
 
 smoke-test-v12:
 	docker compose exec -T clickhouse clickhouse-client --user "$${CLICKHOUSE_USER:-analytics}" --password "$${CLICKHOUSE_PASSWORD:-analytics_password}" --multiquery < scripts/verify_features.sql
 
 schema-phase10:
-	bash scripts/apply-schema.sh infra/clickhouse/sql/005_phase10_lead_scoring.sql
+	bash scripts/apply-schema.sh infra/clickhouse/sql/005_lead_scoring.sql
 
 smoke-test-phase10:
 	docker compose exec -T clickhouse clickhouse-client --user "$${CLICKHOUSE_USER:-analytics}" --password "$${CLICKHOUSE_PASSWORD:-analytics_password}" --multiquery < scripts/smoke_phase10.sql
+
+schema-phase11:
+	bash scripts/apply-schema.sh infra/clickhouse/sql/006_ml_scores.sql
+
+smoke-test-phase11:
+	docker compose exec -T clickhouse clickhouse-client --user "$${CLICKHOUSE_USER:-analytics}" --password "$${CLICKHOUSE_PASSWORD:-analytics_password}" --multiquery < scripts/smoke_phase11.sql
+
+ml-setup:
+	python3 -m venv .venv-ml
+	.venv-ml/bin/pip install --upgrade pip
+	.venv-ml/bin/pip install -r requirements-ml.txt
+
+score-sessions:
+	.venv-ml/bin/python scripts/score_sessions.py
 
 retailrocket-setup:
 	python3 -m venv $(RETAILROCKET_VENV)

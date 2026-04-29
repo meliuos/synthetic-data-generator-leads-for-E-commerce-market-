@@ -8,6 +8,7 @@ from src.scoring.rules import (
     score_session,
     score_sessions,
 )
+from src.scoring.ml_scorer import MLScorer
 
 __all__ = [
     "TIER_HOT_MIN",
@@ -16,4 +17,5 @@ __all__ = [
     "SessionFeatures",
     "score_session",
     "score_sessions",
+    "MLScorer",
 ]

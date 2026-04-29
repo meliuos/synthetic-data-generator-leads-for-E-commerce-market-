@@ -36,7 +36,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 9: Lead Scoring Data Foundation** - Four read-time ClickHouse views: `analytics.unified_events`, `analytics.live_session_features`, `analytics.retailrocket_session_features`, `analytics.session_features`; both sources queryable
 - [x] **Phase 10: Rule-Based Lead Scoring Engine** - Table-driven Python scoring module (`src/scoring/rules.py`), `analytics.lead_scores_rule_based` view, 40+ unit tests; `SELECT anonymous_user_id, lead_score, score_tier FROM analytics.lead_scores_rule_based ORDER BY lead_score DESC` returns a ranked candidate list
-- [ ] **Phase 11: ML Lead Scoring Model** - LightGBM model trained on session_features; rule-based scores used as labels; model served via a lightweight predict endpoint
+- [x] **Phase 11: ML Lead Scoring Model** - LightGBM binary classifier trained on Retailrocket session_features (5-fold CV, scale_pos_weight for 0.82% imbalance); `MLScorer` wrapper, `score_sessions.py` batch CLI, `analytics.lead_scores_ml` ReplacingMergeTree table; ML scores joinable with rule-based scores
 - [ ] **Phase 12: Lead Identification Dashboard** - Streamlit lead panel: ranked lead table, score-tier distribution chart, per-session rule contribution breakdown
 
 ## Phase Details

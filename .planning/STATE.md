@@ -5,19 +5,19 @@
 See: .planning/PROJECT.md (updated 2026-04-18)
 
 **Core value:** Capture user behavior signals that identify purchase-intent leads for an e-commerce site — heatmap engagement plus e-commerce intent events — backed by a scalable real-time event pipeline.
-**Current focus:** v1.2 Lead Scoring & Identification — Phase 10 complete, Phase 11 next.
+**Current focus:** v1.2 Lead Scoring & Identification — Phase 11 complete, Phase 12 next.
 
 ## Current Position
 
 Milestone: v1.2 — Lead Scoring & Identification (active)
-Phase: Phase 10 COMPLETE (1/1 plans shipped, 2026-04-29)
-Plan: 10-01 COMPLETE
-Status: Rule-based scoring engine shipped; analytics.lead_scores_rule_based view queryable; Python module + 40+ unit tests in place
-Last activity: 2026-04-29 — Phase 10 implemented (src/scoring/rules.py, tests/test_scoring_rules.py, 005_phase10_lead_scoring.sql, Makefile targets)
+Phase: Phase 11 COMPLETE (1/1 plans shipped, 2026-04-29)
+Plan: 11-01 COMPLETE
+Status: LightGBM training notebook, MLScorer, score_sessions.py, and analytics.lead_scores_ml all shipped; ML scores joinable with rule-based scores
+Last activity: 2026-04-29 — Phase 11 implemented (notebooks/lead_scoring_model.ipynb, src/scoring/ml_scorer.py, scripts/score_sessions.py, 006_ml_scores.sql, Makefile targets)
 
-Progress: v1.0 complete (13/13 plans); v1.1 complete (6/6 plans); v1.2 in progress (2/4 phases done).
+Progress: v1.0 complete (13/13 plans); v1.1 complete (6/6 plans); v1.2 in progress (3/4 phases done).
 
-██████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ (v1.2: Phase 10/12 complete)
+███████████████████████████░░░░░░░░░░░░░░░░░░░░░░░ (v1.2: Phase 11/12 complete)
 
 ## v1.2 Phase Status Snapshot
 
@@ -25,8 +25,8 @@ Progress: v1.0 complete (13/13 plans); v1.1 complete (6/6 plans); v1.2 in progre
 |-------|------|--------|-------------|
 | 9 | Lead Scoring Data Foundation | COMPLETE (09-01 shipped) | — |
 | 10 | Rule-Based Lead Scoring Engine | COMPLETE (10-01 shipped) | — |
-| 11 | ML Lead Scoring Model | Not started | Next: LightGBM model trained on session_features labels |
-| 12 | Lead Identification Dashboard | Not started | Depends on Phase 11 scores |
+| 11 | ML Lead Scoring Model | COMPLETE (11-01 shipped) | — |
+| 12 | Lead Identification Dashboard | Not started | Next: dashboard/pages/leads.py with ranked leads table |
 
 **Parallelism:** Once Phase 5 ships, Phases 6, 7, and 8 can execute in parallel. Phase 8 touches only v1.0 heatmap columns so it has no logical dependency on 6 or 7.
 
@@ -85,8 +85,9 @@ Decisions locked during Phase 5 plan 1 execution:
 ## Blockers / Concerns
 
 - No blockers.
-- Environment note: host Python is externally managed (PEP 668); dependency verification must continue via isolated venvs.
-- Phase 11 (ML) requires labelled training data — `analytics.lead_scores_rule_based` provides rule-based labels as a starting point.
+- Environment note: host Python is externally managed (PEP 668); ML venv is `.venv-ml` (created by `make ml-setup`).
+- `models/lead_scorer_lgbm.pkl` is gitignored — must run `make ml-setup && jupyter nbconvert --execute notebooks/lead_scoring_model.ipynb` to regenerate.
+- Phase 12 (dashboard) can start immediately.
 
 ## Milestone History
 
@@ -98,5 +99,5 @@ See [.planning/MILESTONES.md](./MILESTONES.md) for shipped milestones.
 ## Session Continuity
 
 Last session: 2026-04-29
-Stopped at: Phase 10 complete. Rule engine (src/scoring/rules.py), 40+ unit tests, analytics.lead_scores_rule_based view, make schema-phase10 + make smoke-test-phase10 all shipped. Next: Phase 11 (LightGBM ML lead scoring model).
+Stopped at: Phase 11 complete. LightGBM training notebook, MLScorer, score_sessions.py, analytics.lead_scores_ml, make ml-setup + score-sessions all shipped. Next: Phase 12 (Lead Identification Dashboard — dashboard/pages/leads.py).
 Resume file: None

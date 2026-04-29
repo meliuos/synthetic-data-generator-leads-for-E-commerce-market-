@@ -4,6 +4,11 @@ __pycache__/
 .venv/
 .venv-phase4/
 .venv-retailrocket/
+.venv-ml/
+
+# ML model artifacts (regenerate with: make ml-setup && make score-sessions)
+models/*.pkl
+models/*.joblib
 
 # Runtime data
 .tmp/
