@@ -70,12 +70,12 @@ Scope: capture lead-informative e-commerce events, import Retailrocket dataset, 
 
 ### Retailrocket Dataset Import
 
-- [ ] **DATA-01**: Retailrocket CSVs (events.csv, item_properties_part1.csv, item_properties_part2.csv, category_tree.csv) are downloadable and documented in the README
-- [ ] **DATA-02**: Import script normalizes Retailrocket rows into ClickHouse parallel tables (`analytics.retailrocket_*` / `retailrocket_raw.*`) preserving visitor, item, event type, timestamp, and transaction id
-- [ ] **DATA-03**: Import is idempotent — rerunning the script doesn't duplicate rows
-- [ ] **DATA-04**: Item properties (category id, price where available) are joinable from the events table
-- [ ] **DATA-05**: Category tree is loaded as a separate ClickHouse table for hierarchical joins
-- [ ] **DATA-06**: Smoke query verifies imported row count matches the source CSV and event-type distribution (view / addtocart / transaction)
+- [x] **DATA-01**: Retailrocket CSVs (events.csv, item_properties_part1.csv, item_properties_part2.csv, category_tree.csv) are downloadable and documented in the README
+- [x] **DATA-02**: Import script normalizes Retailrocket rows into ClickHouse parallel tables (`retailrocket_raw.*`) preserving visitor, item, event type, timestamp, and transaction id
+- [x] **DATA-03**: Import is idempotent — rerunning the script doesn't duplicate rows (load_batch_id short-circuit + insert_deduplication_token per chunk)
+- [x] **DATA-04**: Item properties (category id, price where available) are joinable from the events table via `retailrocket_raw.item_latest` view
+- [x] **DATA-05**: Category tree is loaded as a separate ClickHouse table (`retailrocket_raw.category_tree`) for hierarchical joins
+- [x] **DATA-06**: Smoke query verifies imported row count matches the source CSV and event-type distribution (view / addtocart / transaction)
 
 ### Dashboard Panels (rolled from dropped Phase 5)
 
@@ -146,12 +146,12 @@ Deferred to later milestones (v1.2+).
 | ECOM-05 | Phase 6 (v1.1) | Complete |
 | ECOM-06 | Phase 6 (v1.1) | Complete |
 | ECOM-07 | Phase 6 (v1.1) | Complete |
-| DATA-01 | Phase 7 (v1.1) | Pending |
-| DATA-02 | Phase 7 (v1.1) | Pending |
-| DATA-03 | Phase 7 (v1.1) | Pending |
-| DATA-04 | Phase 7 (v1.1) | Pending |
-| DATA-05 | Phase 7 (v1.1) | Pending |
-| DATA-06 | Phase 7 (v1.1) | Pending |
+| DATA-01 | Phase 7 (v1.1) | Complete |
+| DATA-02 | Phase 7 (v1.1) | Complete |
+| DATA-03 | Phase 7 (v1.1) | Complete |
+| DATA-04 | Phase 7 (v1.1) | Complete |
+| DATA-05 | Phase 7 (v1.1) | Complete |
+| DATA-06 | Phase 7 (v1.1) | Complete |
 | STATS-01 | Phase 8 (v1.1) | Complete |
 | STATS-02 | Phase 8 (v1.1) | Complete |
 

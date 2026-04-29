@@ -41,11 +41,33 @@ All 18 v1.0 requirements shipped and verified: PIPE-01..05, TRACK-01..07, SHOT-0
 
 ## v1.1 — E-commerce Events & Lead Dataset
 
-**Status:** Starting
-**Goal:** Capture lead-informative e-commerce events in the tracker (product_view, add_to_cart, remove_from_cart, purchase, search) and seed ClickHouse with the open-source Retailrocket dataset so downstream lead-generation work has both organic data and a bootstrap corpus. Roll in Phase 5's still-useful panels (session stats, click ranking); drop the rest.
+**Status:** Complete
+**Shipped:** 2026-04-29 (verified by codebase inspection)
+**Phases:** 5–8 (all shipped)
 
-Details live in [PROJECT.md](./PROJECT.md) and [ROADMAP.md](./ROADMAP.md).
+### What Shipped
+
+Full e-commerce event capture and lead data foundation:
+
+- **Phase 5 — E-commerce Event Schema** — Additive ClickHouse schema extension: 8 Nullable e-commerce columns on `analytics.click_events`, two sibling materialized views (`analytics.purchase_items` for per-line-item fan-out via `arrayJoin`, `analytics.orders` ReplacingMergeTree for server-side purchase dedup), zero-storage GA4 alias view (`analytics.click_events_ga4`). Migration idempotent via `make schema-v11`.
+- **Phase 6 — E-commerce Tracker API** — 5 new public methods on the JS tracker (`productView`, `addToCart`, `removeFromCart`, `purchase`, `search`). Consent gate inherited from v1.0. Purchase dedup via `localStorage` seen-set on `order_id`. Demo-shop SPA (`src/test-spa-page.html`) exercises all 5 APIs with product cards, cart, checkout, and search bar.
+- **Phase 7 — Retailrocket Import** — `scripts/download_retailrocket.sh` (Kaggle API, 4 CSVs, extras cleaned). `infra/clickhouse/sql/003_retailrocket_schema.sql` (3 tables + `item_latest` view, idempotent DDL). `scripts/retailrocket/import.py` (500k-row chunks, `load_batch_id` short-circuit, `insert_deduplication_token` per chunk, distribution validation). `scripts/retailrocket/smoke.sql`. Makefile targets: `retailrocket-download`, `retailrocket-import`, `retailrocket-smoke`, `retailrocket-reload`. Raw CSVs in `.gitignore`. Kaggle license evidence committed.
+- **Phase 8 — Rolled-over Dashboard Panels** — Session stats panel (total sessions, avg scroll depth, bounce rate, total events) and click ranking panel (top 10 CSS selectors) added to `dashboard/app.py`. All SQL in `dashboard/heatmap_queries.py` following the v1.0 aggregation-in-ClickHouse rule. Graceful empty states on both panels.
+
+### Validated Requirements
+
+All 18 v1.1 requirements shipped: SCHEMA-01..03, ECOM-01..07, DATA-01..06, STATS-01..02.
+
+### Key Decisions
+
+| Date | Decision | Outcome |
+|------|----------|---------|
+| 2026-04-18 | Additive schema extension (`ALTER TABLE ADD COLUMN IF NOT EXISTS`, never rebuild) | ✓ v1.0 data preserved; migration idempotent |
+| 2026-04-18 | Sibling MVs instead of projections for purchase fan-out and dedup | ✓ Correct — projections cannot ARRAY JOIN or change engine (ClickHouse #98953, #24778) |
+| 2026-04-18 | Retailrocket in separate `retailrocket_raw.*` database, not merged into `click_events` | ✓ Correct — sort-key selectivity preserved; CC BY-NC-SA data isolated |
+| 2026-04-18 | Two-layer idempotency: `load_batch_id` short-circuit + `insert_deduplication_token` per chunk | ✓ No Python-side row dedup; standard ClickHouse idiom |
+| 2026-04-18 | `cart_id` tracker-maintained in `localStorage`, rotated after purchase | ✓ Cart state lives client-side where it belongs |
 
 ---
 
-*Last updated: 2026-04-18 — v1.0 archived, v1.1 started.*
+*Last updated: 2026-04-29 — v1.1 archived as complete.*

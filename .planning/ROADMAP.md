@@ -25,12 +25,19 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Heatmap Computation and Core Dashboard** - Streamlit dashboard renders click/scroll/hover heatmaps as Plotly overlays on screenshots with URL filter and type switcher
 - [~] **Phase 5: Analytics Features** - Dropped — rolled into v1.1 (see MILESTONES.md)
 
-### v1.1 (active)
+### v1.1 (shipped)
 
 - [x] **Phase 5: E-commerce Event Schema** - Additive ClickHouse schema extension with typed e-commerce columns, updated materialized view, `products[]` ARRAY JOIN projection, and `ReplacingMergeTree` orders dedup projection
 - [x] **Phase 6: E-commerce Tracker API** - 5 new tracker methods (`productView`, `addToCart`, `removeFromCart`, `purchase`, `search`) inheriting consent gate, plus a demo-shop test SPA that exercises every method
-- [ ] **Phase 7: Retailrocket Import** - Download + import scripts that idempotently load events, item_properties (long EAV), and category_tree into parallel `retailrocket_raw.*` tables, verified by a smoke query
+- [x] **Phase 7: Retailrocket Import** - Download + import scripts that idempotently load events, item_properties (long EAV), and category_tree into parallel `retailrocket_raw.*` tables, verified by a smoke query
 - [x] **Phase 8: Rolled-over Dashboard Panels** - Session stats panel and click ranking panel added to the existing Streamlit dashboard using the v1.0 `heatmap_queries.py` aggregation pattern
+
+### v1.2 (active)
+
+- [x] **Phase 9: Lead Scoring Data Foundation** - Four read-time ClickHouse views: `analytics.unified_events`, `analytics.live_session_features`, `analytics.retailrocket_session_features`, `analytics.session_features`; both sources queryable
+- [x] **Phase 10: Rule-Based Lead Scoring Engine** - Table-driven Python scoring module (`src/scoring/rules.py`), `analytics.lead_scores_rule_based` view, 40+ unit tests; `SELECT anonymous_user_id, lead_score, score_tier FROM analytics.lead_scores_rule_based ORDER BY lead_score DESC` returns a ranked candidate list
+- [ ] **Phase 11: ML Lead Scoring Model** - LightGBM model trained on session_features; rule-based scores used as labels; model served via a lightweight predict endpoint
+- [ ] **Phase 12: Lead Identification Dashboard** - Streamlit lead panel: ranked lead table, score-tier distribution chart, per-session rule contribution breakdown
 
 ## Phase Details
 
@@ -178,10 +185,12 @@ Plans:
   4. `SELECT event_type, count() FROM retailrocket_raw.events GROUP BY event_type` returns exactly `view: 2,664,312`, `addtocart: 69,332`, `transaction: 22,457` — the source distribution is preserved row-for-row
   5. Joining `retailrocket_raw.events` against the `item_latest` view (which reads from `item_properties`) on `itemid` returns a non-null `categoryid` for more than 90% of the event rows (spot check that the EAV load is joinable, not just counted)
   6. The raw CSVs are listed in `.gitignore` and `git status` after a fresh download shows them as ignored (no accidental commit of CC BY-NC-SA material)
-**Plans**: TBD
+**Plans**: 3
 
 Plans:
-- [ ] 07-01: TBD (to be decomposed by `/gsd:plan-phase 7`)
+- [x] 07-01: ClickHouse schema for `retailrocket_raw` database (003_retailrocket_schema.sql — 3 tables + item_latest view, idempotent DDL)
+- [x] 07-02: Download + import scripts (`scripts/download_retailrocket.sh` + `scripts/retailrocket/import.py` — 500k-row chunks, load_batch_id short-circuit, insert_deduplication_token, distribution validation)
+- [x] 07-03: Smoke query + Makefile targets + .gitignore + data/retailrocket/README.md + Kaggle license evidence
 
 ### Phase 8: Rolled-over Dashboard Panels
 **Goal**: The existing Streamlit dashboard at `dashboard/app.py` gains two new panels — a session stats panel (total sessions, avg scroll depth, bounce rate, total events for the selected URL scope) and a click ranking panel (top 10 CSS element selectors on the selected URL scope) — both aggregated in ClickHouse via the existing `dashboard/heatmap_queries.py` module pattern, never fetching raw rows into Python.
@@ -218,5 +227,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → (v1.0 Phase 5 dropped) 
 | 5 (v1.0). Analytics Features | v1.0 | 0/0 | Dropped — rolled into v1.1 | 2026-04-18 |
 | 5. E-commerce Event Schema | v1.1 | 3/3 | Complete | 2026-04-19 |
 | 6. E-commerce Tracker API | v1.1 | 1/1 | Complete | 2026-04-19 |
-| 7. Retailrocket Import | v1.1 | 0/TBD | Not started | - |
+| 7. Retailrocket Import | v1.1 | 3/3 | Complete | 2026-04-19 |
 | 8. Rolled-over Dashboard Panels | v1.1 | 1/1 | Complete | 2026-04-19 |

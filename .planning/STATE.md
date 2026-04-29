@@ -5,28 +5,28 @@
 See: .planning/PROJECT.md (updated 2026-04-18)
 
 **Core value:** Capture user behavior signals that identify purchase-intent leads for an e-commerce site — heatmap engagement plus e-commerce intent events — backed by a scalable real-time event pipeline.
-**Current focus:** Milestone v1.1 — E-commerce Events & Lead Dataset. Phases 5, 6, and 8 complete; Phase 7 remains.
+**Current focus:** v1.2 Lead Scoring & Identification — Phase 10 complete, Phase 11 next.
 
 ## Current Position
 
-Milestone: v1.1 — E-commerce Events & Lead Dataset
-Phase: Phase 8 COMPLETE (1/1 plans shipped)
-Plan: 08-01 COMPLETE
-Status: STATS-01..02 implemented with ClickHouse-side aggregation + query tests
-Last activity: 2026-04-19 — Phase 8 implemented; ROADMAP/REQUIREMENTS/STATE updated
+Milestone: v1.2 — Lead Scoring & Identification (active)
+Phase: Phase 10 COMPLETE (1/1 plans shipped, 2026-04-29)
+Plan: 10-01 COMPLETE
+Status: Rule-based scoring engine shipped; analytics.lead_scores_rule_based view queryable; Python module + 40+ unit tests in place
+Last activity: 2026-04-29 — Phase 10 implemented (src/scoring/rules.py, tests/test_scoring_rules.py, 005_phase10_lead_scoring.sql, Makefile targets)
 
-Progress: v1.0 complete (13/13 plans shipped); v1.1 in progress (Phases 5, 6, and 8 done — Phase 7 next).
+Progress: v1.0 complete (13/13 plans); v1.1 complete (6/6 plans); v1.2 in progress (2/4 phases done).
 
-█████████████████████████████████████████░░░░░░░░░░ (v1.1: 5/6 plans complete)
+██████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ (v1.2: Phase 10/12 complete)
 
-## v1.1 Phase Status Snapshot
+## v1.2 Phase Status Snapshot
 
-| Phase | Name | Requirements | Status | Next action |
-|-------|------|--------------|--------|-------------|
-| 5 | E-commerce Event Schema | SCHEMA-01, SCHEMA-02, SCHEMA-03 | COMPLETE (all 3 plans shipped) | — |
-| 6 | E-commerce Tracker API | ECOM-01..07 | COMPLETE (06-01 shipped) | — |
-| 7 | Retailrocket Import | DATA-01..06 | Not started (blocked on Phase 5; can run parallel with 6/8) | Next planned execution target |
-| 8 | Rolled-over Dashboard Panels | STATS-01, STATS-02 | COMPLETE (08-01 shipped) | — |
+| Phase | Name | Status | Next action |
+|-------|------|--------|-------------|
+| 9 | Lead Scoring Data Foundation | COMPLETE (09-01 shipped) | — |
+| 10 | Rule-Based Lead Scoring Engine | COMPLETE (10-01 shipped) | — |
+| 11 | ML Lead Scoring Model | Not started | Next: LightGBM model trained on session_features labels |
+| 12 | Lead Identification Dashboard | Not started | Depends on Phase 11 scores |
 
 **Parallelism:** Once Phase 5 ships, Phases 6, 7, and 8 can execute in parallel. Phase 8 touches only v1.0 heatmap columns so it has no logical dependency on 6 or 7.
 
@@ -84,20 +84,19 @@ Decisions locked during Phase 5 plan 1 execution:
 
 ## Blockers / Concerns
 
-- No v1.0 blockers.
-- Environment note: host Python is externally managed (PEP 668); dependency verification must continue via isolated venvs (v1.0 used `.venv-phase4`).
-- Phase 7 pre-flight requires a manual Kaggle license screenshot (committed under `.planning/research/v1.1/evidence/kaggle-license.png`) — first task of Phase 7.
-- Phase 5 open question resolved at roadmap time: `cart_id` is tracker-maintained (per EVENTS.md recommendation).
+- No blockers.
+- Environment note: host Python is externally managed (PEP 668); dependency verification must continue via isolated venvs.
+- Phase 11 (ML) requires labelled training data — `analytics.lead_scores_rule_based` provides rule-based labels as a starting point.
 
 ## Milestone History
 
 See [.planning/MILESTONES.md](./MILESTONES.md) for shipped milestones.
 
 - **v1.0** — Heatmap Core (Complete, 2026-04-16) — Phases 1–4 shipped; Phase 5 dropped, useful parts rolled into v1.1.
-- **v1.1** — E-commerce Events & Lead Dataset (Starting, 2026-04-18) — Roadmap locked (Phases 5-8), planning underway.
+- **v1.1** — E-commerce Events & Lead Dataset (Complete, 2026-04-29) — All 4 phases shipped; 18/18 requirements verified.
 
 ## Session Continuity
 
-Last session: 2026-04-19 16:21 UTC
-Stopped at: Completed 08-01-PLAN.md. Next action: execute/document Phase 7 completion.
+Last session: 2026-04-29
+Stopped at: Phase 10 complete. Rule engine (src/scoring/rules.py), 40+ unit tests, analytics.lead_scores_rule_based view, make schema-phase10 + make smoke-test-phase10 all shipped. Next: Phase 11 (LightGBM ML lead scoring model).
 Resume file: None
