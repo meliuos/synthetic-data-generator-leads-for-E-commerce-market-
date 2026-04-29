@@ -210,14 +210,98 @@ def fetch_click_ranking(client: Any, url_filter: str, limit: int = 10):
     return client.query_df(sql, parameters=params)
 
 
+_LEAD_TIERS = {"hot", "warm", "cold"}
+_LEAD_SOURCES = {"live", "retailrocket"}
+
+
+def build_lead_candidates_query(
+    tiers: list[str],
+    sources: list[str],
+    limit: int = 500,
+) -> Tuple[str, Dict[str, Any]]:
+    """
+    Build a parameterized query for the Phase 12 leads table.
+
+    Joins analytics.lead_scores_rule_based with analytics.session_features
+    (for raw behavioral columns) and LEFT JOINs analytics.lead_scores_ml FINAL
+    (optional — table may be empty if score_sessions.py has not been run yet).
+
+    Sort order: ML score descending when present, rule score / 100 otherwise.
+    Both are normalised to [0, 1] so the ranking is consistent regardless of
+    which score is available.
+    """
+    safe_tiers = [t for t in tiers if t in _LEAD_TIERS] or list(_LEAD_TIERS)
+    safe_sources = [s for s in sources if s in _LEAD_SOURCES] or list(_LEAD_SOURCES)
+    safe_limit = max(1, min(int(limit), 5000))
+
+    # clickhouse-connect passes tuple parameters as SQL tuples for IN clauses.
+    params: Dict[str, Any] = {
+        "tiers": tuple(safe_tiers),
+        "sources": tuple(safe_sources),
+        "limit": safe_limit,
+    }
+
+    sql = """
+    SELECT
+        r.session_id,
+        r.anonymous_user_id,
+        r.source,
+        r.lead_score                                   AS rule_score,
+        r.score_tier,
+        m.ml_lead_score,
+        r.rule_add_to_cart,
+        r.rule_purchase,
+        r.rule_browsing_depth,
+        r.rule_search_intent,
+        r.rule_scroll_engagement,
+        r.rule_bouncer,
+        s.product_views,
+        s.add_to_cart_count,
+        s.cart_abandoned,
+        s.session_duration_seconds,
+        r.first_event_at,
+        r.last_event_at
+    FROM analytics.lead_scores_rule_based AS r
+    INNER JOIN analytics.session_features AS s
+        ON r.session_id = s.session_id AND r.source = s.source
+    LEFT JOIN (
+        SELECT session_id, ml_lead_score
+        FROM analytics.lead_scores_ml FINAL
+    ) AS m ON r.session_id = m.session_id
+    WHERE r.score_tier IN %(tiers)s
+      AND r.source    IN %(sources)s
+    ORDER BY ifNull(m.ml_lead_score, toFloat32(r.lead_score) / 100.0) DESC
+    LIMIT %(limit)s
+    """.strip()
+
+    return sql, params
+
+
+def fetch_lead_candidates(
+    client: Any,
+    tiers: list[str] | None = None,
+    sources: list[str] | None = None,
+    limit: int = 500,
+):
+    """Fetch ranked lead candidates for the Phase 12 leads panel."""
+    sql, params = build_lead_candidates_query(
+        tiers=tiers or list(_LEAD_TIERS),
+        sources=sources or list(_LEAD_SOURCES),
+        limit=limit,
+    )
+    return client.query_df(sql, parameters=params)
+
+
 __all__ = [
     "ALLOWED_EVENT_TYPES",
     "HeatmapQueryConfig",
     "build_heatmap_aggregate_query",
     "build_session_stats_query",
     "build_click_ranking_query",
+    "build_lead_candidates_query",
     "fetch_heatmap_aggregates",
     "fetch_heatmap_aggregates_for",
     "fetch_session_stats",
     "fetch_click_ranking",
+    "fetch_lead_candidates",
 ]
