@@ -155,9 +155,16 @@ Deferred to later milestones (v1.2+).
 | STATS-01 | Phase 8 (v1.1) | Complete |
 | STATS-02 | Phase 8 (v1.1) | Complete |
 
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| LEAD-01 | Phase 10 (v1.2) | Complete |
+| LEAD-02 | Phase 12 (v1.2) | Active |
+| LEAD-03 | Phase 11 (v1.2) | Complete |
+
 **Coverage:**
 - v1.0: 19 requirements, all shipped (4 dropped from Phase 5, 2 rolled into v1.1)
 - v1.1: 18 requirements, all mapped to Phases 5-8 (SCHEMA→5, ECOM→6, DATA→7, STATS→8)
+- v1.2: 3 requirements, mapped to Phases 9-12 (LEAD-01→10, LEAD-03→11, LEAD-02→12)
 
 ---
 *Requirements defined: 2026-04-15 (v1.0) / 2026-04-18 (v1.1)*

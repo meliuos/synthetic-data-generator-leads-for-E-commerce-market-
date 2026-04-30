@@ -212,7 +212,25 @@ Plans:
 
 Plans:
 - [x] 08-01: Implement ClickHouse-aggregated session stats + top-clicked selector panels in Streamlit dashboard with exact/wildcard URL scope semantics and empty states
+### Phase 12: Lead Identification Dashboard
+**Goal**: Surface the downstream output of both the rule-based and ML scoring pipelines (from Phases 10 and 11) directly inside the Streamlit UI, allowing marketers/sales reps to visualize their lead funnel and inspect highly-scored candidate sessions.
+**Depends on**: Phase 10 (Rule-Based Engine), Phase 11 (ML Engine)
+**Requirements**: LEAD-02
+**Notes for implementers**:
+  - Create a new "Leads" or "Intelligence" tab in the Streamlit application to separate this view from the heatmap visuals.
+  - Queries should join data from `analytics.lead_scores_rule_based` and `analytics.lead_scores_ml` to present unified lead profiles to the user.
+  - Rely on ClickHouse for ranking and order calculations (`ORDER BY ml_lead_score DESC LIMIT ...`). Do not load the entire table into Python.
+**Success Criteria** (what must be TRUE):
+  1. Dashboard contains a new "Leads" tab.
+  2. Tab presents a distribution chart (e.g., pie or bar) showing the proportion of sessions in 'hot', 'warm', and 'cold' tiers.
+  3. Displays a ranked data table of the top highest-scoring sessions (incorporating both the discrete rule score and the ML percentage).
+  4. Users can expand or select a specific lead from the table to view the raw JSON `rule_contributions` that generated the score.
+**Plans**: 3
 
+Plans:
+- [ ] 12-01: Implement ClickHouse queries in `dashboard/` to fetch top N leads and score tier distribution.
+- [ ] 12-02: Scaffold the Streamlit "Leads" tab layout, rendering the distribution chart and ranked leads data table.
+- [ ] 12-03: Add drill-down/expand functionality for selecting an individual lead to view detailed rule contribution JSON and underlying session features.
 ## Progress
 
 **Execution Order:**
@@ -229,3 +247,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → (v1.0 Phase 5 dropped) 
 | 6. E-commerce Tracker API | v1.1 | 1/1 | Complete | 2026-04-19 |
 | 7. Retailrocket Import | v1.1 | 3/3 | Complete | 2026-04-19 |
 | 8. Rolled-over Dashboard Panels | v1.1 | 1/1 | Complete | 2026-04-19 |
+| 9. Lead Scoring Data Foundation | v1.2 | X/X | Complete | 2026-04-25 |
+| 10. Rule-Based Lead Scoring Engine | v1.2 | X/X | Complete | 2026-04-28 |
+| 11. ML Lead Scoring Engine | v1.2 | X/X | Complete | 2026-04-30 |
+| 12. Lead Identification Dashboard | v1.2 | 0/3 | Pending | - |
