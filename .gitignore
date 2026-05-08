@@ -19,6 +19,8 @@ screenshots/
 .DS_Store
 .vscode/
 
+rapport/
+
 # Docker override env
 .env
 

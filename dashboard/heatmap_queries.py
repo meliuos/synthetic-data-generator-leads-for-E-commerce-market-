@@ -182,6 +182,60 @@ def fetch_session_stats(client: Any, url_filter: str):
     return client.query_df(sql, parameters=params)
 
 
+def build_lead_funnel_query() -> Tuple[str, Dict[str, Any]]:
+    """Build a parameterized ClickHouse SQL query for lead distribution."""
+    sql = """
+    SELECT
+        score_tier,
+        count() AS session_count
+    FROM analytics.lead_scores_rule_based
+    GROUP BY score_tier
+    ORDER BY session_count DESC
+    """.strip()
+    return sql, {}
+
+
+def fetch_lead_funnel(client: Any):
+    """Execute lead funnel aggregation and return distribution rows."""
+    sql, params = build_lead_funnel_query()
+    return client.query_df(sql, parameters=params)
+
+
+def build_top_leads_query(limit: int = 50) -> Tuple[str, Dict[str, Any]]:
+    """Build a parameterized ClickHouse SQL query for top N leads."""
+    sql = """
+    SELECT
+        ml.session_id AS session_id,
+        ml.anonymous_user_id AS anonymous_user_id,
+        ml.source AS source,
+        round(ml.ml_lead_score * 100, 2) AS ml_score_pct,
+        rb.lead_score AS rule_score,
+        rb.score_tier AS score_tier,
+        rb.first_event_at AS first_event_at,
+        rb.last_event_at AS last_event_at,
+        rb.rule_add_to_cart AS rule_add_to_cart,
+        rb.rule_purchase AS rule_purchase,
+        rb.rule_browsing_depth AS rule_browsing_depth,
+        rb.rule_search_intent AS rule_search_intent,
+        rb.rule_scroll_engagement AS rule_scroll_engagement,
+        rb.rule_bouncer AS rule_bouncer
+    FROM analytics.lead_scores_ml AS ml FINAL
+    JOIN analytics.lead_scores_rule_based AS rb
+        ON ml.session_id = rb.session_id
+        AND ml.anonymous_user_id = rb.anonymous_user_id
+        AND ml.source = rb.source
+    ORDER BY ml.ml_lead_score DESC
+    LIMIT %(limit)s
+    """.strip()
+    return sql, {"limit": max(1, int(limit))}
+
+
+def fetch_top_leads(client: Any, limit: int = 50):
+    """Execute top leads query and return up-to-limit rows."""
+    sql, params = build_top_leads_query(limit=limit)
+    return client.query_df(sql, parameters=params)
+
+
 def build_click_ranking_query(url_filter: str, limit: int = 10) -> Tuple[str, Dict[str, Any]]:
     """Build a parameterized ClickHouse SQL query for top-clicked selectors."""
     url_predicate, params = build_url_predicate(url_filter)
@@ -299,9 +353,13 @@ __all__ = [
     "build_session_stats_query",
     "build_click_ranking_query",
     "build_lead_candidates_query",
+    "build_lead_funnel_query",
+    "build_top_leads_query",
     "fetch_heatmap_aggregates",
     "fetch_heatmap_aggregates_for",
     "fetch_session_stats",
     "fetch_click_ranking",
     "fetch_lead_candidates",
+    "fetch_lead_funnel",
+    "fetch_top_leads",
 ]

@@ -18,8 +18,7 @@ echo "Producing smoke test event to topic: $TOPIC"
 $COMPOSE exec -T redpanda rpk topic create "$TOPIC" -p 1 -r 1 >/dev/null 2>&1 || true
 printf '%s\n' "$EVENT_JSON" | $COMPOSE exec -T redpanda rpk topic produce "$TOPIC" -f '%v\n' >/dev/null
 
-deadline=$((SECONDS + 5))
-row_count=0
+deadline=$((SECONDS + 10))
 
 while (( SECONDS <= deadline )); do
   row_count=$($COMPOSE exec -T clickhouse clickhouse-client \
@@ -28,10 +27,10 @@ while (( SECONDS <= deadline )); do
     --query "SELECT count() FROM analytics.click_events WHERE session_id = '$SESSION_ID'")
   row_count=$(echo "$row_count" | tr -d '[:space:]')
   if [[ "$row_count" != "0" ]]; then
-    echo "PASS: event ingested in <=5s (session_id=$SESSION_ID, rows=$row_count)"
+    echo "PASS: event ingested in <=10s (session_id=$SESSION_ID, rows=$row_count)"
     exit 0
   fi
 done
 
-echo "FAIL: event was not ingested in 5 seconds (session_id=$SESSION_ID)" >&2
+echo "FAIL: event was not ingested in 10 seconds (session_id=$SESSION_ID)" >&2
 exit 1

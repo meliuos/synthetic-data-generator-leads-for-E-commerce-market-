@@ -39,7 +39,7 @@ SELECT
     r.score_tier          AS rule_tier,
     round(m.ml_lead_score * 100, 1) AS ml_score_pct
 FROM analytics.lead_scores_rule_based AS r
-INNER JOIN analytics.lead_scores_ml FINAL AS m
+INNER JOIN analytics.lead_scores_ml AS m FINAL
     ON r.session_id = m.session_id
 ORDER BY m.ml_lead_score DESC
 LIMIT 10;
