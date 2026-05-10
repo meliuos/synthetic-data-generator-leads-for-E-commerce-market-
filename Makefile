@@ -9,7 +9,7 @@ else
     RETAILROCKET_PIP    ?= $(RETAILROCKET_VENV)/bin/pip
 endif
 
-.PHONY: validate up down logs ps schema schema-v11 schema-retailrocket schema-v12 schema-phase10 schema-phase11 smoke-test smoke-test-v11 smoke-test-v12 smoke-test-phase10 smoke-test-phase11 score-sessions ml-setup retailrocket-setup retailrocket-download retailrocket-import retailrocket-smoke retailrocket-reload synth-setup schema-phase13 smoke-test-phase13 ctgan-train generate-synthetic sim-setup simulate smoke-test-sim ai-setup schema-ai test-ai
+.PHONY: validate up down logs ps schema schema-v11 schema-retailrocket schema-v12 schema-phase10 schema-phase11 smoke-test smoke-test-v11 smoke-test-v12 smoke-test-phase10 smoke-test-phase11 score-sessions ml-setup retailrocket-setup retailrocket-download retailrocket-import retailrocket-smoke retailrocket-reload synth-setup schema-phase13 smoke-test-phase13 ctgan-train generate-synthetic sim-setup simulate smoke-test-sim ai-setup schema-ai test-ai schema-phase17 predict-product test-predictor build-augmented-dataset train-augmented select-model test-registry
 
 validate:
 	$(COMPOSE) config >/dev/null
@@ -194,3 +194,54 @@ schema-ai:
 
 test-ai:
 	$(AI_PYTHON) -m pytest tests/test_prompt_builder.py -v
+
+# ---------------------------------------------------------------------------
+# Phase 17 — Product Input & Lead Prediction Interface
+# ---------------------------------------------------------------------------
+
+PRODUCT     ?= "Wireless Headphones"
+CATEGORY    ?= 1051
+PRICE       ?= 49.99
+KEYWORDS    ?= audio,bluetooth
+N_PREDICT   ?= 1000
+MODEL_PATH  ?= models/ctgan_sessions.pkl
+
+schema-phase17:
+	bash scripts/apply-schema.sh infra/clickhouse/sql/009_prediction_log.sql
+
+predict-product:
+	$(SYNTH_PYTHON) scripts/predict_product.py \
+	  --product "$(PRODUCT)" \
+	  --category $(CATEGORY) \
+	  --price $(PRICE) \
+	  --keywords "$(KEYWORDS)" \
+	  --n-sessions $(N_PREDICT) \
+	  --model $(MODEL_PATH)
+
+test-predictor:
+	$(SYNTH_PYTHON) -m pytest tests/test_product_predictor.py -v
+
+# ---------------------------------------------------------------------------
+# Phase 18 — Augmented Training Pipeline
+# ---------------------------------------------------------------------------
+
+VERSION ?= v2
+
+build-augmented-dataset:
+	$(ML_PYTHON) scripts/build_augmented_dataset.py \
+	  --output-dir data \
+	  --seed 42
+
+train-augmented: build-augmented-dataset
+	$(ML_PYTHON) -m nbconvert --to notebook --execute \
+	  --ExecutePreprocessor.timeout=7200 \
+	  --ExecutePreprocessor.kernel_name=python3 \
+	  --output augmented_training_executed \
+	  --output-dir notebooks \
+	  notebooks/augmented_training.ipynb
+
+select-model:
+	$(ML_PYTHON) -c "from src.scoring.model_registry import set_active_model; set_active_model('$(VERSION)')"
+
+test-registry:
+	$(ML_PYTHON) -m pytest tests/test_model_registry.py -v

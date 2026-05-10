@@ -100,76 +100,92 @@ All v1.2 requirements shipped: LEAD-01 (session features), LEAD-02 (lead dashboa
 
 ---
 
-## v2.0 — Synthetic Data Generation (Planned)
+## v2.0 — Synthetic Data Generation
 
-**Status:** Pending
-**Target:** TBD
+**Status:** Complete
+**Shipped:** 2026-05-10
 **Phases:** 13–14
 
-### Planned Scope
+### What Shipped
 
-- **Phase 13 — CTGAN Behavioral Simulator** — Train a Conditional Tabular GAN on `analytics.session_features` to generate synthetic sessions with realistic behavioral distributions. Exports `models/ctgan_sessions.pkl`. CLI: `make generate-synthetic`.
-- **Phase 14 — Simulation Engine (Mesa)** — Agent-based e-commerce simulator pushing synthetic event streams directly into the Redpanda pipeline. Three agent types: BrowserAgent, BuyerAgent, AbandonerAgent. CLI: `make simulate`.
+- **Phase 13 — CTGAN Behavioral Simulator** — `CTGANSynthesizer` (SDV) trained on `analytics.session_features` with top-50 category cardinality cap to avoid OHE memory error. Exports `models/ctgan_sessions.pkl`. `analytics.synthetic_sessions` ClickHouse table (mirrors session_features schema + `is_synthetic` discriminator). CLI: `make ctgan-train` + `make generate-synthetic`.
+- **Phase 14 — Simulation Engine (Mesa)** — Mesa 3.x agent-based simulator with `BrowserAgent`, `BuyerAgent`, `AbandonerAgent`. Kafka/Redpanda event emission bridge. `scripts/run_simulation.py` CLI. Makefile targets: `make sim-setup`, `make simulate`, `make smoke-test-sim`.
 
-### Entry Point
+### Key Decisions
 
-Phase 13. See NEXT-PHASES.md and ROADMAP.md for full detail.
+| Date | Decision | Outcome |
+|------|----------|---------|
+| 2026-05-10 | Top-50 category cardinality cap in CTGAN training | Avoids 13 GiB OHE memory error with 1,079 distinct categories |
+| 2026-05-10 | Mesa 3.x API (`Agent(model)`, `self.agents.shuffle_do("step")`) | Mesa 3.x removed `RandomActivation`; new API required |
+| 2026-05-10 | Single 100-epoch training run on 200K stratified sample | Avoids timeout from checkpoint-loop re-training from scratch |
 
 ---
 
-## v2.1 — AI Commercial Assistant (Planned)
+## v2.1 — AI Commercial Assistant
 
-**Status:** Pending
-**Target:** After v2.0
+**Status:** Complete
+**Shipped:** 2026-05-10
 **Phases:** 15–16
 
-### Planned Scope
+### What Shipped
 
-- **Phase 15 — Lead Profiling & LLM Context Builder** — Context-assembly layer translating lead behavioral signals into a structured prompt for Claude (`claude-sonnet-4-6`). Prompt caching on system prompt per tier. Logs to `analytics.ai_script_log`.
-- **Phase 16 — AI Script Generation Panel** — "Generate Script" button per lead row in the Streamlit Leads page. Spinner + `st.text_area` output. Token usage and cost display. Script history panel.
+- **Phase 15 — Lead Profiling & LLM Context Builder** — `src/ai/lead_profiler.py` (ClickHouse context assembly), `src/ai/prompt_builder.py` (Jinja2 per-tier templates), `src/ai/llm_client.py` (Ollama HTTP API, `qwen2.5:7b`, fully local — replaced Anthropic/Claude). Logs to `analytics.ai_script_log` with `cost_usd=0`. 11 unit tests passing.
+- **Phase 16 — AI Script Generation Panel** — Per-lead "Generate Script" button in `dashboard/pages/leads.py`. Tier emoji (🔥/🌡️/❄️). `st.session_state` caching per lead. Sentinel-string routing for missing-lead / timeout errors. Script history `st.dataframe`.
 
-### Entry Point
+### Key Decisions
 
-Phase 15, after Phase 12 (lead identification) is confirmed stable and Phase 13 (CTGAN) is underway or complete.
+| Date | Decision | Outcome |
+|------|----------|---------|
+| 2026-05-10 | Replaced Anthropic/Claude with Ollama + Qwen2.5:7b (local inference) | Zero API cost; no rate limits; `OLLAMA_HOST` env var configurable |
+| 2026-05-10 | `build_script()` in `src/ai/__init__.py` never raises — returns sentinel strings | Dashboard layer does not need try/except; sentinel routing in UI |
 
 ---
 
-## v2.2 — Product Intelligence Interface (Planned)
+## v2.2 — Product Intelligence Interface
 
-**Status:** Pending
-**Target:** After v2.0 Phase 13
+**Status:** Complete
+**Shipped:** 2026-05-10
 **Phases:** 17
 
-### Planned Scope
+### What Shipped
 
-- **Phase 17 — Product Input & Lead Prediction Interface** — Operator-facing Streamlit page where an e-commerce manager enters a product (name, category, price, keywords) and receives ML-backed lead predictions: conversion rate estimate, tier distribution, top behavioral signals, and a table of lookalike synthetic sessions. Powered by CTGAN sampling + Phase 11 ML scorer. Every prediction logged to `analytics.prediction_log`.
+- **Phase 17 — Product Input & Lead Prediction Interface** — `src/prediction/product_predictor.py` with `predict_for_product()`, `PredictionResult` dataclass, lazy-cached CTGAN synthesizer and MLScorer, conditional CTGAN sampling with unconditional fallback, heuristic fallback scorer. `dashboard/pages/predict.py` Streamlit page with form, metrics row, Plotly pie/bar charts, top-10 sessions table, prediction history. `analytics.prediction_log` ClickHouse table. `scripts/predict_product.py` CLI. 26 unit tests passing.
 
-### Entry Point
+### Key Decisions
 
-Phase 17. Requires Phase 13 (CTGAN model) and Phase 11 (ML scorer) to be complete. Can start in parallel with Phase 14.
+| Date | Decision | Outcome |
+|------|----------|---------|
+| 2026-05-10 | `lru_cache` on synthesizer and MLScorer loaders | Avoids repeated 6 MB pkl deserialization on multi-call workflows |
+| 2026-05-10 | Heuristic fallback score when LightGBM model absent | Prediction page works even before `make score-sessions` runs |
+| 2026-05-10 | `category_tree` has no name column — selectbox shows IDs directly | Avoids broken join; IDs match CTGAN training column |
 
 ---
 
----
+## v2.3 — ML Pipeline Hardening (In Progress)
 
-## v2.3 — ML Pipeline Hardening (Planned)
-
-**Status:** Pending
-**Target:** After v2.2 Phase 17
+**Status:** Phase 18 COMPLETE — Phase 19 pending
+**Target:** After Phase 19 ships
 **Phases:** 18–19
 
-### Planned Scope
+### What Shipped (Phase 18)
 
-- **Phase 18 — Augmented Training Pipeline** — Retrain the LightGBM scorer on real + synthetic combined corpus (Phase 13 output). Introduce model versioning (`models/ACTIVE_MODEL` file, `model_registry.py`). Export `models/lead_scorer_lgbm_v2.pkl`. Compare v1 vs v2 AUC/Recall@K, commit model card to `docs/model_card_v2.md`.
+- **Phase 18 — Augmented Training Pipeline** — `scripts/build_augmented_dataset.py` exports real Retailrocket + CTGAN synthetic sessions, aligns `_FEATURE_COLS`, labels `converted`, stratified 80/20 split to `data/augmented_{training,test}.parquet`. `notebooks/augmented_training.ipynb` 7-cell notebook: load → v1 baseline recall → LightGBM v2 5-fold CV → v1 vs v2 comparison (5pp Recall@K target) → feature importance delta chart → save `models/lead_scorer_lgbm_v2.pkl` → model card export to `docs/model_card_v2.md`. `src/scoring/model_registry.py` with `get_active_version()`, `get_active_model_path()`, `set_active_model()`. `MLScorer` updated to use registry as default (backwards-compatible). `models/ACTIVE_MODEL` committed (initial: `v1`). 20 unit tests passing.
+
+### Planned (Phase 19)
+
 - **Phase 19 — Prediction REST API Service** — FastAPI service (`src/api/main.py`) in Docker Compose exposing `POST /predict/product`, `GET /health`, `GET /predictions/history`. The Streamlit predict page (Phase 17) calls the API instead of importing the predictor directly. Prediction history expander added to the predict page.
 
-### Entry Point
+### Entry Point for Phase 19
 
-Phase 18, after Phase 17 (product_predictor.py tested) and Phase 13 (synthetic_sessions populated).
+Phase 19. Requires Phase 18 model versioning in place.
 
-### Why This Milestone Exists
+### Key Decisions (Phase 18)
 
-Phase 13 generates synthetic sessions to address class imbalance in the ML scorer, but without Phase 18 that synthetic data is never used to improve the model — the training loop is incomplete. Phase 19 extracts the prediction logic into a proper service so the Streamlit dashboard does not block on CTGAN sampling and so the prediction capability is accessible programmatically.
+| Date | Decision | Outcome |
+|------|----------|---------|
+| 2026-05-10 | `models/ACTIVE_MODEL` is plain-text committed to git | Config, not artifact — safe to commit; `models/*.pkl` remain gitignored |
+| 2026-05-10 | `MLScorer(model_version="v2")` kwarg resolves via registry; explicit `model_path=` still works | Zero breakage to existing callers (score_sessions.py, product_predictor.py) |
+| 2026-05-10 | Synthetic table fetch in dataset builder is non-fatal (logs warning, continues with real only) | `make build-augmented-dataset` works even before `make generate-synthetic` runs |
 
 ---
 

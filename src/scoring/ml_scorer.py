@@ -1,8 +1,16 @@
 """
-ML lead scorer — Phase 11.
+ML lead scorer — Phase 11, updated Phase 18.
 
 Loads a trained LightGBM model from disk and scores a DataFrame of session
 features, returning a calibrated probability [0, 1] per session.
+
+Phase 18 changes:
+  - MLScorer now reads the active model via model_registry.get_active_model_path()
+    when no explicit path or version is supplied.
+  - New keyword-only argument `model_version` lets callers request a specific
+    registered version ("v1", "v2") without knowing the file path.
+  - All existing callers that pass an explicit model_path continue to work
+    without any changes (backwards-compatible).
 
 Design constraints:
   - No import-time dependency on lightgbm or joblib; both are imported lazily
@@ -23,6 +31,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import pandas as pd
 
+# Kept for backwards-compatibility; registry is now authoritative for default path.
 DEFAULT_MODEL_PATH = Path("models/lead_scorer_lgbm.pkl")
 MODEL_VERSION = "lgbm_v1"
 
@@ -41,13 +50,25 @@ class MLScorer:
     """
     Wraps a trained LightGBM classifier for batch session scoring.
 
+    Argument resolution order (first match wins):
+      1. model_version="v2"  → load the registered v2 pkl path
+      2. model_path="..."    → load that explicit path (legacy callers)
+      3. (neither)           → load model_registry.get_active_model_path()
+
     Usage:
-        scorer = MLScorer()                        # loads models/lead_scorer_lgbm.pkl
+        scorer = MLScorer()                        # loads active model (from ACTIVE_MODEL)
+        scorer = MLScorer(model_version="v2")      # load v2 specifically
+        scorer = MLScorer("models/custom.pkl")     # legacy explicit path
         scores = scorer.predict(session_df)        # Series of float [0, 1], same index
         tier   = scorer.score_tier(scores * 100)   # 'hot' / 'warm' / 'cold' Series
     """
 
-    def __init__(self, model_path: Path | str = DEFAULT_MODEL_PATH) -> None:
+    def __init__(
+        self,
+        model_path: Path | str | None = None,
+        *,
+        model_version: str | None = None,
+    ) -> None:
         try:
             import joblib
         except ImportError as exc:
@@ -56,8 +77,26 @@ class MLScorer:
                 "Install it with: pip install -r requirements-ml.txt"
             ) from exc
 
-        self._model = joblib.load(model_path)
-        self.model_version = MODEL_VERSION
+        if model_version is not None:
+            from src.scoring.model_registry import MODELS
+            if model_version not in MODELS:
+                raise ValueError(
+                    f"Unknown model version '{model_version}'. "
+                    f"Available: {sorted(MODELS)}"
+                )
+            resolved = Path(MODELS[model_version])
+            self.model_version = f"lgbm_{model_version}"
+        elif model_path is not None:
+            resolved = Path(model_path)
+            # Preserve the existing version tag so callers that pass model_path
+            # explicitly (e.g. score_sessions.py) see no change.
+            self.model_version = MODEL_VERSION
+        else:
+            from src.scoring.model_registry import get_active_model_path, get_active_version
+            resolved = Path(get_active_model_path())
+            self.model_version = f"lgbm_{get_active_version()}"
+
+        self._model = joblib.load(resolved)
 
     def predict(self, df: "pd.DataFrame") -> "pd.Series":
         """

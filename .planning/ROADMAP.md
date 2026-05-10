@@ -9,10 +9,10 @@ v1.0 shipped the heatmap core in five phases (Phase 5 dropped at pivot): Redpand
 - Shipped **v1.0 Heatmap Core** — Phases 1–4 (shipped 2026-04-16; Phase 5 dropped)
 - Shipped **v1.1 E-commerce Events & Lead Dataset** — Phases 5–8 (shipped 2026-04-29)
 - Shipped **v1.2 Lead Scoring & Identification** — Phases 9–12 (shipped 2026-04-29)
-- Pending **v2.0 Synthetic Data Generation** — Phases 13–14
-- Pending **v2.1 AI Commercial Assistant** — Phases 15–16
-- Pending **v2.2 Product Intelligence Interface** — Phase 17
-- Pending **v2.3 ML Pipeline Hardening** — Phases 18–19
+- Shipped **v2.0 Synthetic Data Generation** — Phases 13–14 (shipped 2026-05-10)
+- Shipped **v2.1 AI Commercial Assistant** — Phases 15–16 (shipped 2026-05-10)
+- Shipped **v2.2 Product Intelligence Interface** — Phase 17 (shipped 2026-05-10)
+- In Progress **v2.3 ML Pipeline Hardening** — Phase 18 complete; Phase 19 pending
 - Pending **v2.4 Production Monitoring & CI** — Phase 20
 
 ## Phases
@@ -489,11 +489,11 @@ Phase 20 (Monitoring & CI)  (v2.4)
 | 10. Rule-Based Lead Scoring Engine | v1.2 | 1/1 | Complete | 2026-04-28 |
 | 11. ML Lead Scoring Engine | v1.2 | 1/1 | Complete | 2026-04-30 |
 | 12. Lead Identification Dashboard | v1.2 | 1/1 | Complete | 2026-04-29 |
-| 13. CTGAN Behavioral Simulator | v2.0 | 0/3 | Pending | - |
-| 14. Simulation Engine (Mesa) | v2.0 | 0/3 | Pending | - |
-| 15. Lead Profiling & LLM Context Builder | v2.1 | 0/2 | Pending | - |
-| 16. AI Script Generation Panel | v2.1 | 0/1 | Pending | - |
-| 17. Product Input & Lead Prediction Interface | v2.2 | 0/3 | Pending | - |
-| 18. Augmented Training Pipeline | v2.3 | 0/3 | Pending | - |
+| 13. CTGAN Behavioral Simulator | v2.0 | 3/3 | Complete | 2026-05-10 |
+| 14. Simulation Engine (Mesa) | v2.0 | 3/3 | Complete | 2026-05-10 |
+| 15. Lead Profiling & LLM Context Builder | v2.1 | 2/2 | Complete | 2026-05-10 |
+| 16. AI Script Generation Panel | v2.1 | 1/1 | Complete | 2026-05-10 |
+| 17. Product Input & Lead Prediction Interface | v2.2 | 3/3 | Complete | 2026-05-10 |
+| 18. Augmented Training Pipeline | v2.3 | 3/3 | Complete | 2026-05-10 |
 | 19. Prediction REST API Service | v2.3 | 0/3 | Pending | - |
 | 20. ML Monitoring & CI Hardening | v2.4 | 0/3 | Pending | - |

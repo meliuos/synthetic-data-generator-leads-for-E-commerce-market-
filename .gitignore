@@ -36,6 +36,7 @@ data/augmented_training.parquet
 data/augmented_test.parquet
 models/ctgan_checkpoint_*.pkl
 notebooks/ctgan_trainer_executed.ipynb
+notebooks/augmented_training_executed.ipynb
 
 # Phase 13 synth venv
 .venv-synth/

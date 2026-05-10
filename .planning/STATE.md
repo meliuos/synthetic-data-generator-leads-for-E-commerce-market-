@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-04-18)
 
 **Core value:** Capture user behavior signals that identify purchase-intent leads for an e-commerce site — heatmap engagement plus e-commerce intent events — backed by a scalable real-time event pipeline.
-**Current focus:** v2.0 CTGAN Behavioral Simulator — v1.2 COMPLETE, Phase 13 is the active entry point. Full pipeline target: Phase 17 (Product Input & Lead Prediction Interface).
+**Current focus:** v2.3 ML Pipeline Hardening — Phases 17 and 18 shipped; Phase 19 (Prediction REST API) is next.
 
 ## Current Position
 
-Milestone: **v1.2 COMPLETE** (all 4 phases shipped, 2026-04-29)
-Phase: Phase 12 COMPLETE (1/1 plans shipped, 2026-04-29)
-Plan: 12-01 COMPLETE
-Status: Leads page live in Streamlit multi-page app; ranked table with rule + ML scores, filters, rules_fired breakdown, and CSV export
-Last activity: 2026-04-29 — Phase 12 implemented (dashboard/pages/leads.py, heatmap_queries fetch_lead_candidates)
+Milestone: **v2.3 IN PROGRESS** — Phase 18 (Augmented Training Pipeline) complete
+Phase: Phase 18 COMPLETE (3/3 plans shipped, 2026-05-10)
+Plan: 18-01 (dataset builder), 18-02 (training notebook), 18-03 (model registry) — all COMPLETE
+Status: Augmented dataset builder, LightGBM v2 training notebook, model registry, and ACTIVE_MODEL versioning all live. Phase 17 (Product Prediction Interface) also complete.
+Last activity: 2026-05-10 — Phases 17 and 18 implemented
 
-Progress: v1.0 complete (13/13 plans); v1.1 complete (6/6 plans); v1.2 COMPLETE (4/4 phases).
+Progress: v1.0 complete (13/13 plans); v1.1 complete (6/6 plans); v1.2 COMPLETE (4/4 phases); v2.0–v2.2 COMPLETE (Phases 13–17); v2.3 Phase 18 COMPLETE.
 
 ██████████████████████████████████████████████████ (v1.2: ALL PHASES COMPLETE)
 
