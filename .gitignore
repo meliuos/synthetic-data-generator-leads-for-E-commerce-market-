@@ -29,3 +29,19 @@ rapport/
 # Retailrocket dataset (license-restricted raw CSVs)
 data/retailrocket/*
 !data/retailrocket/README.md
+
+# Phase 13 — synthetic data training corpus and checkpoints (regenerate with make ctgan-train)
+data/session_features.parquet
+data/augmented_training.parquet
+data/augmented_test.parquet
+models/ctgan_checkpoint_*.pkl
+notebooks/ctgan_trainer_executed.ipynb
+
+# Phase 13 synth venv
+.venv-synth/
+
+# Phase 14 simulation venv
+.venv-sim/
+
+# Phase 15 AI venv
+.venv-ai/

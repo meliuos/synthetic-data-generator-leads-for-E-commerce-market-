@@ -1,0 +1,4 @@
+mesa>=2.3.0
+numpy>=1.26.0
+kafka-python>=2.0.2
+clickhouse-connect>=0.7.0
