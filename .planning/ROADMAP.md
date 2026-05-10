@@ -7,7 +7,13 @@ v1.0 shipped the heatmap core in five phases (Phase 5 dropped at pivot): Redpand
 ## Milestones
 
 - Shipped **v1.0 Heatmap Core** — Phases 1–4 (shipped 2026-04-16; Phase 5 dropped)
-- Active **v1.1 E-commerce Events & Lead Dataset** — Phases 5–8 (in progress)
+- Shipped **v1.1 E-commerce Events & Lead Dataset** — Phases 5–8 (shipped 2026-04-29)
+- Shipped **v1.2 Lead Scoring & Identification** — Phases 9–12 (shipped 2026-04-29)
+- Pending **v2.0 Synthetic Data Generation** — Phases 13–14
+- Pending **v2.1 AI Commercial Assistant** — Phases 15–16
+- Pending **v2.2 Product Intelligence Interface** — Phase 17
+- Pending **v2.3 ML Pipeline Hardening** — Phases 18–19
+- Pending **v2.4 Production Monitoring & CI** — Phase 20
 
 ## Phases
 
@@ -212,6 +218,26 @@ Plans:
 
 Plans:
 - [x] 08-01: Implement ClickHouse-aggregated session stats + top-clicked selector panels in Streamlit dashboard with exact/wildcard URL scope semantics and empty states
+## v1.2 Phases
+
+### Phase 9: Lead Scoring Data Foundation
+**Goal**: Build the ClickHouse data layer (unified events view + per-session feature table) that all v1.2 scoring models consume.
+**Depends on**: Phase 7 (Retailrocket tables must exist for the UNION)
+**Status**: Complete (2026-04-25)
+**Plans**: 1/1 complete
+
+### Phase 10: Rule-Based Lead Scoring Engine
+**Goal**: Implement a deterministic, interpretable lead score from behavioral signals. Table-driven rules in Python, applied via a ClickHouse view.
+**Depends on**: Phase 9
+**Status**: Complete (2026-04-28)
+**Plans**: 1/1 complete
+
+### Phase 11: ML Lead Scoring Model
+**Goal**: Train a LightGBM binary classifier (converted vs not-converted) on Retailrocket sessions, export it, and serve predictions alongside rule-based scores.
+**Depends on**: Phase 10
+**Status**: Complete (2026-04-30)
+**Plans**: 1/1 complete
+
 ### Phase 12: Lead Identification Dashboard
 **Goal**: Surface the downstream output of both the rule-based and ML scoring pipelines (from Phases 10 and 11) directly inside the Streamlit UI, allowing marketers/sales reps to visualize their lead funnel and inspect highly-scored candidate sessions.
 **Depends on**: Phase 10 (Rule-Based Engine), Phase 11 (ML Engine)
@@ -225,16 +251,228 @@ Plans:
   2. Tab presents a distribution chart (e.g., pie or bar) showing the proportion of sessions in 'hot', 'warm', and 'cold' tiers.
   3. Displays a ranked data table of the top highest-scoring sessions (incorporating both the discrete rule score and the ML percentage).
   4. Users can expand or select a specific lead from the table to view the raw JSON `rule_contributions` that generated the score.
+**Status**: Complete (2026-04-29)
+**Plans**: 1/1 complete
+
+Plans:
+- [x] 12-01: Implement ClickHouse queries in `dashboard/` to fetch top N leads and score tier distribution, scaffold Streamlit Leads page with distribution chart, ranked table, rules_fired breakdown, and CSV export.
+
+---
+
+## v2.0 Phases
+
+### Phase 13: CTGAN Behavioral Simulator
+**Goal**: Train a CTGAN (Conditional Tabular GAN) on `analytics.session_features` to generate synthetic e-commerce sessions with realistic behavioral distributions, providing a controlled training/augmentation corpus for the ML scorer and the simulation engine.
+**Depends on**: Phase 9 (session_features view), Phase 11 (ML scorer provides quality signal for evaluation)
+**Requirements**: SYNTH-01, SYNTH-02, SYNTH-03
+**Notes for implementers**:
+  - Use `ctgan` from the SDV library. Pin version in `requirements-synth.txt` to avoid breaking changes.
+  - Training data: export `analytics.session_features` (all columns, both sources) deduplicated by `(anonymous_user_id, session_id)` to a local Parquet file. Do not load all rows into memory at once — use chunked ClickHouse export.
+  - Define column metadata explicitly: continuous columns (`max_scroll_pct`, `session_duration_seconds`, `page_views`) vs discrete (`score_tier`, `cart_abandoned`, `source`). Wrong metadata types significantly degrade GAN output quality.
+  - Train for 300 epochs minimum, checkpoint every 50. Log Jensen-Shannon divergence per feature at each checkpoint.
+  - Condition the GAN on `category` when sampling for product-level prediction (Phase 17) — ensure `category` is included in the training schema.
+  - Export trained model to `models/ctgan_sessions.pkl` (joblib). File is gitignored — `make ctgan-train` regenerates it.
+  - `scripts/generate_synthetic_sessions.py` inserts generated rows into `analytics.synthetic_sessions`, which mirrors `session_features` schema. Add `is_synthetic BOOL DEFAULT 1` discriminator column.
+**Success Criteria** (what must be TRUE):
+  1. `make ctgan-train` completes without error and writes `models/ctgan_sessions.pkl` to disk
+  2. `python scripts/generate_synthetic_sessions.py --n-sessions 10000` inserts 10,000 rows into `analytics.synthetic_sessions` with no null values in non-nullable feature columns
+  3. Jensen-Shannon divergence < 0.1 on all continuous features (verified by `notebooks/ctgan_trainer.ipynb` evaluation cell and committed as `docs/ctgan_evaluation.md`)
+  4. Running the generation script a second time with `--overwrite` replaces rows; without it, appends (row-level idempotency via `is_synthetic + session_id` dedup key)
+  5. `SELECT source, count() FROM analytics.synthetic_sessions GROUP BY source` shows a realistic source-label distribution consistent with the training split
 **Plans**: 3
 
 Plans:
-- [ ] 12-01: Implement ClickHouse queries in `dashboard/` to fetch top N leads and score tier distribution.
-- [ ] 12-02: Scaffold the Streamlit "Leads" tab layout, rendering the distribution chart and ranked leads data table.
-- [ ] 12-03: Add drill-down/expand functionality for selecting an individual lead to view detailed rule contribution JSON and underlying session features.
+- [ ] 13-01: ClickHouse schema for `analytics.synthetic_sessions` table + `requirements-synth.txt` + `make ctgan-train` Makefile target
+- [ ] 13-02: CTGAN training notebook (`notebooks/ctgan_trainer.ipynb`) — data export, column metadata, 300-epoch training, JS divergence evaluation, model export to `models/ctgan_sessions.pkl`
+- [ ] 13-03: `scripts/generate_synthetic_sessions.py` CLI (--n-sessions, --category-filter, --overwrite), ML scorer integration, `analytics.synthetic_sessions` insert, `docs/ctgan_evaluation.md`
+
+---
+
+### Phase 14: Simulation Engine (Mesa / SimPy)
+**Goal**: Build an agent-based e-commerce traffic simulator that generates realistic event streams (not just session aggregates) by replaying CTGAN-sampled behavioral profiles through the live Redpanda pipeline — enabling "what-if" scenario testing for lead acquisition strategies.
+**Depends on**: Phase 13 (CTGAN model provides behavioral priors for agent initialization)
+**Requirements**: SIM-01, SIM-02, SIM-03
+**Notes for implementers**:
+  - Use Mesa framework for agent-based modeling. Each agent represents one visitor session.
+  - Three agent types: `BrowserAgent` (click/scroll/product_view only), `BuyerAgent` (conversion_probability from ML calibrated output), `AbandonerAgent` (adds to cart then exits — tests abandonment detection).
+  - Agents draw their behavioral profile (page_views, scroll_pct, product_views, etc.) from `analytics.synthetic_sessions` sampled via CTGAN model.
+  - Event emission: simulator pushes events directly to the Redpanda topic via the same RudderStack SDK path as the live tracker — all downstream ClickHouse tables and dashboard panels receive simulated events transparently.
+  - Simulated sessions use `session_id` prefixed `sim_` and `anonymous_user_id` prefixed `sim_` so they are distinguishable in ClickHouse queries.
+  - CLI: `scripts/run_simulation.py --n-agents 1000 --duration-minutes 60 --seed 42`
+**Success Criteria** (what must be TRUE):
+  1. A 100-agent, 10-minute simulation (`--n-agents 100 --duration-minutes 10 --seed 0`) writes events to `analytics.click_events` within 30 seconds of completion, visible via `SELECT count() FROM analytics.click_events WHERE session_id LIKE 'sim_%'`
+  2. The three agent types produce distinguishable behavioral signals: `BuyerAgent` sessions have `purchase_count > 0`, `AbandonerAgent` sessions have `add_to_cart_count > 0 AND purchase_count = 0`, `BrowserAgent` sessions have both equal to 0
+  3. Running `make simulate` with `--seed 42` twice produces the same event count (deterministic replay)
+  4. The Streamlit dashboard's session stats and heatmap panels reflect simulated events without code changes (events are indistinguishable to the dashboard layer from real traffic, except for the `sim_` prefix queryable via URL filter)
+  5. Simulation log (emitted to stdout) reports: total events emitted, conversion rate achieved, session duration distribution mean ± std
+**Plans**: 3
+
+Plans:
+- [ ] 14-01: Agent definitions (`src/simulation/agents.py`) — BrowserAgent, BuyerAgent, AbandonerAgent with CTGAN-sampled behavioral profiles
+- [ ] 14-02: Mesa environment (`src/simulation/ecommerce_env.py`) + Redpanda event emission bridge + `scripts/run_simulation.py` CLI
+- [ ] 14-03: `make simulate` Makefile target + smoke test (100-agent, 10-min) + simulation log format doc
+
+---
+
+## v2.1 Phases
+
+### Phase 15: Lead Profiling & LLM Context Builder
+**Goal**: Build the context-assembly layer that translates a lead's behavioral signals into a structured prompt payload for the LLM, enabling personalized sales script generation.
+**Depends on**: Phase 12 (lead identification — ranked candidates must exist in ClickHouse)
+**Requirements**: AI-01, AI-02
+**Notes for implementers**:
+  - Use Claude API (`claude-sonnet-4-6`) via the Anthropic SDK. Include prompt caching headers (`cache_control: {"type": "ephemeral"}`) on the system prompt — the per-tier template is static, so cache hit rates should be high.
+  - PII constraint: context object must use `anonymous_user_id` only — never email, IP, or real name.
+  - One template per score tier (hot / warm / cold). Templates in `src/ai/templates/`.
+  - Log all LLM calls to `analytics.ai_script_log` ClickHouse table: `lead_id`, `tier`, `model`, `prompt_tokens`, `cache_tokens`, `output_tokens`, `cost_usd`, `generated_at`.
+**Success Criteria** (what must be TRUE):
+  1. `python -c "from src.ai.lead_profiler import build_script; print(build_script('anon_123'))"` returns a non-empty personalized sales script in < 3 seconds
+  2. System prompt caching is active — the second call for any lead in the same tier returns `cache_tokens > 0` in the API response
+  3. LLM call is logged to `analytics.ai_script_log` with correct token counts and cost estimate (at $3/MTok input, $15/MTok output for Sonnet)
+  4. Passing an `anonymous_user_id` that has no lead scores returns a graceful error string, not an exception
+**Plans**: 2
+
+Plans:
+- [ ] 15-01: `src/ai/lead_profiler.py` + `src/ai/prompt_builder.py` — lead context assembly + per-tier prompt templates with prompt caching
+- [ ] 15-02: `src/ai/llm_client.py` (Claude API, Sonnet 4.6, cached system prompt) + `analytics.ai_script_log` ClickHouse table + `make test-ai` target
+
+---
+
+### Phase 16: AI Script Generation Dashboard Panel
+**Goal**: Surface the LLM script generation capability directly in the Streamlit Leads page — one button click per lead row generates a personalized sales outreach script.
+**Depends on**: Phase 15 (LLM context builder must be callable from the dashboard)
+**Requirements**: AI-03
+**Notes for implementers**:
+  - "Generate Script" button on each Leads table row. Use `st.spinner` for the async wait.
+  - Display the generated script in `st.text_area` with a copy-to-clipboard button.
+  - Show token usage and estimated cost sourced from `analytics.ai_script_log` below the script output.
+  - Script history panel: last 10 generated scripts for the current browser session, queryable from `ai_script_log`.
+**Success Criteria** (what must be TRUE):
+  1. Clicking "Generate Script" on any lead row produces a non-empty script in < 5 seconds with no page reload
+  2. Token usage and cost estimate are displayed below the script text
+  3. The script history panel shows the last 10 generated scripts for the session
+  4. `make test-ai` generates a script for the top-scored lead and asserts: non-empty output, < 500 words, logged in `ai_script_log`
+**Plans**: 1
+
+Plans:
+- [ ] 16-01: "Generate Script" button + spinner + `st.text_area` output + token/cost display + script history panel in `dashboard/pages/leads.py`
+
+---
+
+## v2.2 Phases
+
+### Phase 17: Product Input & Lead Prediction Interface
+**Goal**: Provide an operator-facing Streamlit page where an e-commerce manager enters a product's attributes (name, category, price, description keywords) and receives ML-backed predictions: expected conversion rate, lead tier distribution, top behavioral signals, and a sample of lookalike synthetic sessions — giving product owners actionable intelligence before a product launches.
+**Depends on**: Phase 13 (CTGAN model trained — needed to sample synthetic sessions), Phase 11 (ML scorer loadable — needed to score sampled sessions), Phase 14 (optional dependency: if real-time simulation is preferred over static CTGAN sampling for richer event-level predictions)
+**Requirements**: PRED-01, PRED-02, PRED-03
+**Notes for implementers**:
+  - Core prediction flow: (1) accept product attributes from the form, (2) sample N synthetic sessions from CTGAN conditioned on `category`, (3) run `MLScorer` on those sessions, (4) aggregate: conversion_rate_pct = mean(ml_lead_score), tier_distribution = count by tier bucket, top_features = feature importances weighted by session scores.
+  - `src/prediction/product_predictor.py` is the backend; it must be importable independently of Streamlit (for CLI/batch use via `make predict-product`).
+  - Condition CTGAN sampling on `category` — the model must have been trained with `category` as a discrete column (enforced in Phase 13 plan 02). If the requested category is unseen, fall back to unconditional sampling with a warning.
+  - Log every prediction to `analytics.prediction_log` ClickHouse table: `product_name`, `category`, `price`, `keywords`, `n_sessions_sampled`, `conversion_rate_pct`, `tier_hot_pct`, `tier_warm_pct`, `tier_cold_pct`, `predicted_at`. This enables trend tracking ("does adding a discount keyword improve conversion predictions?").
+  - Form validation is client-side (Streamlit `st.form` validators): category must be selected from `retailrocket_raw.category_tree`, price must be > 0, at least one field must be non-empty.
+  - The "prediction" is a simulation over synthetic data — not a guarantee. Add a disclaimer note below the results.
+**Success Criteria** (what must be TRUE):
+  1. Submitting a valid product form returns prediction results in < 10 seconds (sampling 1,000 CTGAN sessions + ML scoring + aggregation)
+  2. Conversion rate and tier distribution are derived from ≥ 1,000 CTGAN-sampled sessions scored by the Phase 11 ML model; the sample size is shown in the UI
+  3. Selecting different categories produces noticeably different tier distributions (model is sensitive to category — verified by spot-checking Electronics vs. Clothing categories)
+  4. Every form submission writes one row to `analytics.prediction_log`; `make predict-product --product "Test" --category 213` runs the same pipeline from CLI and also writes to the log
+  5. Invalid form inputs (empty category, price ≤ 0) show inline validation messages without triggering a backend call; unseen category falls back to unconditional sampling with a visible warning banner
+  6. Results page shows: conversion rate gauge, tier pie chart, top 5 behavioral signals bar chart, and a table of the top 10 scored synthetic sessions with their feature values
+**Plans**: 3
+
+Plans:
+- [ ] 17-01: `src/prediction/product_predictor.py` — CTGAN conditional sampling + ML scorer pipeline, `predict_for_product(category, price, keywords, n_sessions)` returns structured prediction dict
+- [ ] 17-02: `dashboard/pages/predict.py` — Streamlit product input form (category select from ClickHouse, price input, keywords text) + results display (conversion gauge, tier pie, feature bar chart, top sessions table) + disclaimer note
+- [ ] 17-03: `analytics.prediction_log` ClickHouse schema + `make predict-product` CLI target + `infra/clickhouse/sql/004_prediction_log.sql` (idempotent DDL)
+
+---
+
+## v2.3 Phases
+
+### Phase 18: Augmented Training Pipeline
+**Goal**: Retrain the LightGBM lead scorer on a combined corpus of real Retailrocket sessions + CTGAN synthetic sessions to improve recall on the minority class. Introduce model versioning so the active model can be swapped without code changes.
+**Depends on**: Phase 13 (synthetic sessions in `analytics.synthetic_sessions`), Phase 11 (baseline model for comparison)
+**Requirements**: ML-05, ML-06
+**Success Criteria** (what must be TRUE):
+  1. `make build-augmented-dataset` exports real + synthetic session rows, merges them, and writes `data/augmented_training.parquet` with class distribution logged
+  2. `notebooks/augmented_training.ipynb` trains LightGBM v2 and its Recall@K (top 10%) is compared against the v1 baseline; result committed to `docs/model_card_v2.md`
+  3. `models/lead_scorer_lgbm_v2.pkl` exists after `make train-augmented`
+  4. `make select-model VERSION=v2` switches `models/ACTIVE_MODEL` to `v2`; subsequent `make score-sessions --dry-run` logs "active model: v2"
+  5. `MLScorer` continues to work with `VERSION=v1` (no regression on the baseline scorer)
+**Plans**: 3 plans
+
+Plans:
+- [ ] 18-01: `scripts/build_augmented_dataset.py` — real + synthetic data merge, labelling, stratified split, Parquet export
+- [ ] 18-02: `notebooks/augmented_training.ipynb` — augmented LightGBM training, v1 vs v2 comparison, feature importance delta, model card
+- [ ] 18-03: `src/scoring/model_registry.py` + `models/ACTIVE_MODEL` + `make select-model` + `MLScorer` path update
+
+---
+
+### Phase 19: Prediction REST API Service
+**Goal**: Expose the product prediction pipeline (Phase 17) as a standalone FastAPI service in Docker Compose, decoupling ML inference from the Streamlit dashboard process and enabling programmatic access.
+**Depends on**: Phase 17 (product_predictor.py must be tested), Phase 18 (active model versioning in place)
+**Requirements**: API-01, API-02, API-03
+**Success Criteria** (what must be TRUE):
+  1. `make api-up` starts the `prediction-api` container; `GET http://localhost:8000/health` returns HTTP 200 with `{"status": "ok"}`
+  2. `POST http://localhost:8000/predict/product` with a valid payload returns HTTP 200 in < 10 seconds with `conversion_rate_pct`, `tier_distribution`, and `n_sessions_sampled`
+  3. Every successful POST writes one row to `analytics.prediction_log`
+  4. The Streamlit predict page (`dashboard/pages/predict.py`) calls the API endpoint (no direct import of `ctgan` or `lightgbm` in the dashboard process)
+  5. The prediction history expander on the predict page loads the last 5 predictions from `GET /predictions/history`
+**Plans**: 3 plans
+
+Plans:
+- [ ] 19-01: `src/api/main.py` + `src/api/schemas.py` + `src/api/dependencies.py` + `requirements-api.txt` + unit tests
+- [ ] 19-02: `docker-compose.yml` `prediction-api` service + `make api-up` / `make api-test` Makefile targets
+- [ ] 19-03: `dashboard/pages/predict.py` updated to call API + prediction history expander
+
+---
+
+## v2.4 Phases
+
+### Phase 20: ML Monitoring & CI Hardening
+**Goal**: Add model drift detection, pipeline observability (Redpanda Console + ClickHouse slow query panel), and a GitHub Actions CI pipeline that validates linting, unit tests, and Docker builds on every pull request.
+**Depends on**: Phase 19 (full system running in Docker Compose)
+**Requirements**: OPS-01, OPS-02, OPS-03
+**Success Criteria** (what must be TRUE):
+  1. `make check-drift` prints a drift report (JSD per feature, status ok/warn/fail) and writes one row to `analytics.drift_log`
+  2. `http://localhost:8080` (Redpanda Console) shows topic throughput and consumer group lag without any code changes
+  3. The Streamlit admin sidebar shows a "Model Health" section with the last drift check result and a slow-query table from `system.query_log`
+  4. Pushing a branch with a lint error causes the GitHub Actions CI `lint` job to fail
+  5. Pushing a branch with a failing unit test causes the `unit-tests` job to fail; Docker build failure causes `docker-build` to fail
+**Plans**: 3 plans
+
+Plans:
+- [ ] 20-01: `src/monitoring/drift_detector.py` + `scripts/check_model_drift.py` + `make check-drift` + `analytics.drift_log` + Streamlit Model Health panel
+- [ ] 20-02: `redpandadata/console` in `docker-compose.yml` + slow-query panel in Streamlit sidebar + `make console-up`
+- [ ] 20-03: `.github/workflows/ci.yml` (lint + unit-tests + docker-build) + `requirements-dev.txt` + `make lint` + README badge
+
+---
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → (v1.0 Phase 5 dropped) → 5 → {6, 7, 8 in parallel}
+```
+Phases 1–4 (v1.0)
+  ↓
+Phase 5 → {6, 7, 8 in parallel} (v1.1)
+  ↓
+Phase 9 → Phase 10 → Phase 11 → Phase 12 (v1.2)
+  ↓
+Phase 13 (CTGAN) ──────────────┐
+                                ├── can run in parallel once Phase 13 ships
+Phase 14 (Simulation) ─────────┘  (v2.0)
+  ↓
+Phase 15 (LLM Context) → Phase 16 (AI Panel)  (v2.1)  ← parallel with Phases 17-18
+  ↓
+Phase 17 (Product Prediction Interface)  (v2.2)
+  ↓
+Phase 18 (Augmented Training) ─────────┐
+                                        ├── both depend on Phase 17; 18 → 19 sequential
+Phase 19 (Prediction API Service) ─────┘  (v2.3)
+  ↓
+Phase 20 (Monitoring & CI)  (v2.4)
+```
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -247,7 +485,15 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → (v1.0 Phase 5 dropped) 
 | 6. E-commerce Tracker API | v1.1 | 1/1 | Complete | 2026-04-19 |
 | 7. Retailrocket Import | v1.1 | 3/3 | Complete | 2026-04-19 |
 | 8. Rolled-over Dashboard Panels | v1.1 | 1/1 | Complete | 2026-04-19 |
-| 9. Lead Scoring Data Foundation | v1.2 | X/X | Complete | 2026-04-25 |
-| 10. Rule-Based Lead Scoring Engine | v1.2 | X/X | Complete | 2026-04-28 |
-| 11. ML Lead Scoring Engine | v1.2 | X/X | Complete | 2026-04-30 |
-| 12. Lead Identification Dashboard | v1.2 | 0/3 | Pending | - |
+| 9. Lead Scoring Data Foundation | v1.2 | 1/1 | Complete | 2026-04-25 |
+| 10. Rule-Based Lead Scoring Engine | v1.2 | 1/1 | Complete | 2026-04-28 |
+| 11. ML Lead Scoring Engine | v1.2 | 1/1 | Complete | 2026-04-30 |
+| 12. Lead Identification Dashboard | v1.2 | 1/1 | Complete | 2026-04-29 |
+| 13. CTGAN Behavioral Simulator | v2.0 | 0/3 | Pending | - |
+| 14. Simulation Engine (Mesa) | v2.0 | 0/3 | Pending | - |
+| 15. Lead Profiling & LLM Context Builder | v2.1 | 0/2 | Pending | - |
+| 16. AI Script Generation Panel | v2.1 | 0/1 | Pending | - |
+| 17. Product Input & Lead Prediction Interface | v2.2 | 0/3 | Pending | - |
+| 18. Augmented Training Pipeline | v2.3 | 0/3 | Pending | - |
+| 19. Prediction REST API Service | v2.3 | 0/3 | Pending | - |
+| 20. ML Monitoring & CI Hardening | v2.4 | 0/3 | Pending | - |

@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-04-18)
 
 **Core value:** Capture user behavior signals that identify purchase-intent leads for an e-commerce site — heatmap engagement plus e-commerce intent events — backed by a scalable real-time event pipeline.
-**Current focus:** v2.0 CTGAN Behavioral Simulator — v1.2 COMPLETE, Phase 13 next.
+**Current focus:** v2.0 CTGAN Behavioral Simulator — v1.2 COMPLETE, Phase 13 is the active entry point. Full pipeline target: Phase 17 (Product Input & Lead Prediction Interface).
 
 ## Current Position
 
@@ -82,11 +82,24 @@ Decisions locked during Phase 5 plan 1 execution:
 | 2026-04-19 | 8 | Session stats average scroll depth is computed from per-session max `scroll_pct` then averaged across sessions | Prevents heavy-scrolling sessions from overweighting the metric compared to session-level intent analysis |
 | 2026-04-19 | 8 | Phase 8 panels are query-helper backed and return aggregate dataframes only (no raw event rows in Streamlit) | Preserves established v1.0 performance and layering constraints for dashboard rendering |
 
+## Remaining Milestones
+
+| Milestone | Phases | Goal |
+|-----------|--------|------|
+| v2.0 | 13–14 | Synthetic data generation (CTGAN) + agent-based simulation via Mesa |
+| v2.1 | 15–16 | AI commercial assistant — LLM sales script generation per lead |
+| v2.2 | 17 | Product input form → ML-backed lead conversion predictions |
+| v2.3 | 18–19 | Augmented model retraining (real+synthetic corpus) + Prediction REST API service |
+| v2.4 | 20 | ML drift monitoring + pipeline observability + GitHub Actions CI |
+
+**End-to-end target:** After Phase 20 ships, the system is production-ready: an operator enters a product into the dashboard (or calls the REST API), the prediction service samples CTGAN sessions, scores them with the augmented model, and returns tier predictions — with continuous drift monitoring, consumer-lag visibility, and automated CI validation on every code change.
+
 ## Blockers / Concerns
 
 - No blockers. v1.2 is fully shipped.
 - Environment note: ML venv is `.venv-ml` (created by `make ml-setup`). `models/lead_scorer_lgbm.pkl` is gitignored — regenerate with `make ml-setup && jupyter nbconvert --execute notebooks/lead_scoring_model.ipynb && make score-sessions`.
-- Next milestone: v2.0 CTGAN Behavioral Simulator. Entry point: Phase 13.
+- Phase 13 prerequisite: `ctgan` (SDV) must be added to `requirements-synth.txt`; pin the version before training.
+- Phase 17 prerequisite: Phase 13 CTGAN model must be trained and CTGAN must support conditional sampling on `category` — this must be verified during Phase 13 plan 02 before Phase 17 plan 01 begins.
 
 ## Milestone History
 

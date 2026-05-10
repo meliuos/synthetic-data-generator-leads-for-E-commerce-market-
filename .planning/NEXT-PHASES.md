@@ -212,8 +212,7 @@ using an LLM with lead behavioral context as grounding.
 
 **Depends on:** Phase 12 (lead identification — scores and behavioral signals must exist)
 
-**Note:** This is CdC Phase 5. Listed here for roadmap continuity. Architecture decisions
-should not be made until v2.0 is underway.
+**Note:** This is CdC Phase 5. Architecture decisions should not be made until v2.0 is underway.
 
 ---
 
@@ -268,43 +267,188 @@ personalized sales script in <5 seconds, with token usage displayed.
 
 ---
 
+---
+
+## v2.2 — Product Intelligence Interface
+
+**Goal:** Give e-commerce operators a self-service prediction tool: enter a product's name,
+category, price, and description keywords — receive ML-backed lead predictions for that product
+before it launches, powered by CTGAN synthetic sessions scored by the Phase 11 model.
+
+**Depends on:** Phase 13 (CTGAN model trained), Phase 11 (ML scorer), Phase 14 (optional)
+
+---
+
+### Phase 17: Product Input & Lead Prediction Interface
+
+**Objective:** A Streamlit page where an operator fills a product form and receives:
+conversion rate estimate, tier distribution (hot/warm/cold), top behavioral signals, and a
+sample of the top-scored synthetic lookalike sessions.
+
+**Depends on:** Phase 13 (CTGAN model at `models/ctgan_sessions.pkl`), Phase 11 (MLScorer at
+`src/scoring/ml_scorer.py`)
+
+**Key tasks:**
+1. Build `src/prediction/product_predictor.py`:
+   - `predict_for_product(category, price, keywords, n_sessions=1000)` → samples N synthetic
+     sessions from CTGAN conditioned on `category` → runs `MLScorer` → returns structured dict:
+     `{conversion_rate_pct, tier_distribution, top_features, sample_sessions}`
+   - Falls back to unconditional sampling if the requested category is unseen in training.
+2. Create `analytics.prediction_log` ClickHouse table (idempotent DDL in
+   `infra/clickhouse/sql/004_prediction_log.sql`): `product_name`, `category`, `price`,
+   `keywords`, `n_sessions_sampled`, `conversion_rate_pct`, `tier_hot_pct`, `tier_warm_pct`,
+   `tier_cold_pct`, `predicted_at`. Every form submission writes one row.
+3. New Streamlit page `dashboard/pages/predict.py`:
+   - Form: product name (text), category (select from `retailrocket_raw.category_tree`),
+     price (numeric, > 0), description keywords (text)
+   - On submit: spinner → `product_predictor.predict_for_product()` → display:
+     - Conversion rate gauge (`st.metric`)
+     - Tier pie chart (Plotly)
+     - Top 5 behavioral signals bar chart (Plotly, feature importances weighted by score)
+     - Top 10 scored synthetic sessions table
+     - Disclaimer note: "Based on synthetic data — not a sales guarantee"
+   - Empty/invalid form fields show inline validation without triggering the backend.
+4. CLI: `make predict-product` wraps `scripts/predict_product.py --product "X" --category 213
+   --price 49.99` for batch/CI use; also writes to `prediction_log`.
+
+**Expected outcome:** An operator can open the dashboard "Predict" page, fill a product form,
+and within 10 seconds see a data-backed prediction of which lead tier their product is likely
+to attract — derived from the full ML pipeline, with no manual data preparation.
+
+---
+
 ## Phase Summary Table
 
-| Phase | Milestone | Name | Depends On | Priority |
-|-------|-----------|------|-----------|----------|
-| ~~7~~ | ~~v1.1~~ | ~~Retailrocket Import~~ | ~~—~~ | ~~Complete (2026-04-29)~~ |
-| 9 | v1.2 | Lead Scoring Data Foundation | Phase 7 ✓ | **High — current entry point** |
-| 10 | v1.2 | Rule-Based Lead Scoring | Phase 9 | High |
-| 11 | v1.2 | ML Lead Scoring Model | Phase 10 | High |
-| 12 | v1.2 | Lead Identification Dashboard | Phase 11 | High |
-| 13 | v2.0 | CTGAN Behavioral Simulator | Phase 9, 11 | Medium |
-| 14 | v2.0 | Simulation Engine (Mesa) | Phase 13 | Medium |
-| 15 | v2.1 | Lead Profiling & LLM Context | Phase 12 | Medium |
-| 16 | v2.1 | AI Script Generation Panel | Phase 15 | Low |
+| Phase | Milestone | Name | Depends On | Status |
+|-------|-----------|------|-----------|--------|
+| ~~9~~ | ~~v1.2~~ | ~~Lead Scoring Data Foundation~~ | ~~Phase 7~~ | ~~Complete 2026-04-25~~ |
+| ~~10~~ | ~~v1.2~~ | ~~Rule-Based Lead Scoring~~ | ~~Phase 9~~ | ~~Complete 2026-04-28~~ |
+| ~~11~~ | ~~v1.2~~ | ~~ML Lead Scoring Model~~ | ~~Phase 10~~ | ~~Complete 2026-04-30~~ |
+| ~~12~~ | ~~v1.2~~ | ~~Lead Identification Dashboard~~ | ~~Phase 11~~ | ~~Complete 2026-04-29~~ |
+| 13 | v2.0 | CTGAN Behavioral Simulator | Phase 9, 11 | **Pending — current entry point** |
+| 14 | v2.0 | Simulation Engine (Mesa) | Phase 13 | Pending |
+| 15 | v2.1 | Lead Profiling & LLM Context | Phase 12 | Pending |
+| 16 | v2.1 | AI Script Generation Panel | Phase 15 | Pending |
+| 17 | v2.2 | Product Input & Lead Prediction Interface | Phase 13, 11 | Pending |
+| 18 | v2.3 | Augmented Training Pipeline | Phase 13, 11 | Pending |
+| 19 | v2.3 | Prediction REST API Service | Phase 17, 18 | Pending |
+| 20 | v2.4 | ML Monitoring & CI Hardening | Phase 19 | Pending |
 
 ---
 
 ## Execution Order
 
 ```
-Phase 7 (Retailrocket) — complete v1.1
+v1.2 COMPLETE (Phases 9–12)
   ↓
-Phase 9 (Data Foundation) ──────┐
-                                 ├── can run in parallel
-Phase 10 (Rule Scoring) ────────┘
+Phase 13 (CTGAN Behavioral Simulator)
   ↓
-Phase 11 (ML Scoring)
+Phase 14 (Simulation Engine)      ←── v2.0 DONE (Phase 17 can start here in parallel)
   ↓
-Phase 12 (Lead Dashboard)   ← v1.2 DONE
+Phase 15 (LLM Context Builder)
   ↓
-Phase 13 (CTGAN) ────────────┐
-                              ├── can run in parallel
-Phase 14 (Simulation) ───────┘  ← v2.0 DONE
+Phase 16 (AI Script Panel)        ←── v2.1 DONE
   ↓
-Phase 15 (LLM Context)
+Phase 17 (Product Prediction)     ←── v2.2 DONE
   ↓
-Phase 16 (AI Panel)         ← v2.1 DONE
+Phase 18 (Augmented Training)
+  ↓
+Phase 19 (Prediction REST API)    ←── v2.3 DONE
+  ↓
+Phase 20 (Monitoring & CI)        ←── v2.4 DONE — system production-ready
 ```
 
+**Parallelism notes:**
+- Phase 17 can start in parallel with Phase 14 once Phase 13 ships (both need CTGAN model)
+- Phases 15–16 (AI assistant) are independent of 17–20 (prediction pipeline) and can run in parallel
+- Phase 18 can start in parallel with Phase 17 once Phase 13 ships (18 needs synthetic sessions, not the Streamlit page)
+
 ---
-*Written: 2026-04-29*
+
+## v2.3 — ML Pipeline Hardening
+
+**Goal:** Close the training loop opened by Phase 13 and expose the prediction pipeline
+as a proper service — two gaps that exist in the v2.0–v2.2 plan.
+
+---
+
+### Phase 18: Augmented Training Pipeline
+
+**Objective:** Retrain the ML lead scorer (Phase 11) on the combined real+synthetic
+corpus to improve Recall@K on the minority class. Introduce model versioning.
+
+**Depends on:** Phase 13 (`analytics.synthetic_sessions` populated), Phase 11 (baseline)
+
+**Key tasks:**
+1. `scripts/build_augmented_dataset.py`: export Retailrocket session_features + CTGAN
+   synthetic_sessions, merge with `is_synthetic` discriminator, stratified 80/20 split,
+   save to `data/augmented_training.parquet` + `data/augmented_test.parquet`
+2. `notebooks/augmented_training.ipynb`: retrain LightGBM v2 on combined corpus,
+   compare v1 vs v2 (AUC, Precision@K, Recall@K), feature importance delta chart,
+   export to `models/lead_scorer_lgbm_v2.pkl`, commit `docs/model_card_v2.md`
+3. `src/scoring/model_registry.py`: `get_active_model_path()` reads `models/ACTIVE_MODEL`;
+   `set_active_model(version)` writes it; `make select-model VERSION=v2` switches the
+   active scorer without code changes
+
+**Why this is not optional:** Phase 13 generates synthetic data to address class imbalance.
+If the model is never retrained with that data, the entire CTGAN effort produces rows
+that are never used. The training loop is broken without this phase.
+
+**Expected outcome:** `MLScorer` with VERSION=v2 achieves higher Recall@K (top 10%)
+than VERSION=v1 on the held-out augmented test set. Both versions remain loadable.
+
+---
+
+### Phase 19: Prediction REST API Service
+
+**Objective:** Expose `product_predictor.predict_for_product()` as a FastAPI HTTP
+endpoint, decoupling ML inference from the Streamlit dashboard process.
+
+**Depends on:** Phase 17 (`product_predictor.py` tested), Phase 18 (model versioning in place)
+
+**Key tasks:**
+1. `src/api/main.py`: `POST /predict/product`, `GET /health`, `GET /predictions/history`;
+   CTGAN sampling runs in FastAPI thread pool (non-blocking); Pydantic request/response models
+2. Docker Compose `prediction-api` service (port 8000), shared `./models` volume read-only,
+   health check, `make api-up` / `make api-test` targets
+3. Update `dashboard/pages/predict.py` to call API via `requests` (no direct ML imports
+   in dashboard process); add Prediction History expander (last 5 predictions from API)
+
+**Why this matters:** A Streamlit function call blocks the UI thread for the duration of
+CTGAN sampling. An HTTP call with a spinner is the correct pattern. It also makes the
+prediction service independently testable and deployable.
+
+**Expected outcome:** `POST http://localhost:8000/predict/product` returns a prediction
+in < 10 seconds; Streamlit page calls the API; `docker compose logs prediction-api`
+shows the inference request.
+
+---
+
+## v2.4 — Production Monitoring & CI
+
+**Goal:** Add observability and automated validation so the system can be handed off
+to someone who didn't build it.
+
+---
+
+### Phase 20: ML Monitoring & CI Hardening
+
+**Objective:** Detect model drift, surface pipeline health in the dashboard, and
+automate test execution on every pull request.
+
+**Depends on:** Phase 19 (full Docker Compose stack stable)
+
+**Key tasks:**
+1. `src/monitoring/drift_detector.py`: Jensen-Shannon divergence per feature (real vs
+   synthetic); `analytics.drift_log` table; `make check-drift` CLI target; Streamlit
+   Model Health panel with drift status badge + per-feature bar chart
+2. `redpandadata/console` in Docker Compose (port 8080, zero code); ClickHouse slow-query
+   panel in Streamlit admin sidebar from `system.query_log`
+3. `.github/workflows/ci.yml`: `lint` (ruff), `unit-tests` (pytest), `docker-build`
+   jobs on push + PR; `make lint` target; README CI badge
+
+**Expected outcome:** `make check-drift` prints JSD per feature; Redpanda Console
+accessible at port 8080; every PR triggers CI and failures block merge.
+
+---
+*Written: 2026-04-29 | Updated: 2026-05-08 (v2.3 Phases 18–19 and v2.4 Phase 20 added)*
