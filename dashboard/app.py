@@ -8,6 +8,7 @@ import plotly.express as px
 import requests
 import streamlit as st
 
+from drift_panel import render_model_health_sidebar, render_slow_query_sidebar
 from heatmap_filters import normalize_url_filter
 from heatmap_queries import (
     fetch_click_ranking,
@@ -194,6 +195,16 @@ def render_heatmap_tab(
         st.plotly_chart(figure, use_container_width=True)
     except Exception as exc:
         st.error(f"Failed to render {viewport_label.lower()} heatmap: {exc}")
+
+# ---------------------------------------------------------------------------
+# Admin sidebar — Model Health + Slow Queries (Phase 20)
+# ---------------------------------------------------------------------------
+
+_sidebar_client = get_clickhouse_client()
+if _sidebar_client:
+    render_model_health_sidebar(_sidebar_client)
+    st.sidebar.divider()
+    render_slow_query_sidebar(_sidebar_client)
 
 # Main dashboard layout
 main_tabs = st.tabs(["Heatmap & Analytics", "Sales Leads"])

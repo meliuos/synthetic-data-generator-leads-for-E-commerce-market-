@@ -12,8 +12,8 @@ v1.0 shipped the heatmap core in five phases (Phase 5 dropped at pivot): Redpand
 - Shipped **v2.0 Synthetic Data Generation** — Phases 13–14 (shipped 2026-05-10)
 - Shipped **v2.1 AI Commercial Assistant** — Phases 15–16 (shipped 2026-05-10)
 - Shipped **v2.2 Product Intelligence Interface** — Phase 17 (shipped 2026-05-10)
-- In Progress **v2.3 ML Pipeline Hardening** — Phase 18 complete; Phase 19 pending
-- Pending **v2.4 Production Monitoring & CI** — Phase 20
+- Shipped **v2.3 ML Pipeline Hardening** — Phases 18–19 (shipped 2026-05-10)
+- Shipped **v2.4 Production Monitoring & CI** — Phase 20 (shipped 2026-05-10)
 
 ## Phases
 
@@ -495,5 +495,5 @@ Phase 20 (Monitoring & CI)  (v2.4)
 | 16. AI Script Generation Panel | v2.1 | 1/1 | Complete | 2026-05-10 |
 | 17. Product Input & Lead Prediction Interface | v2.2 | 3/3 | Complete | 2026-05-10 |
 | 18. Augmented Training Pipeline | v2.3 | 3/3 | Complete | 2026-05-10 |
-| 19. Prediction REST API Service | v2.3 | 0/3 | Pending | - |
-| 20. ML Monitoring & CI Hardening | v2.4 | 0/3 | Pending | - |
+| 19. Prediction REST API Service | v2.3 | 3/3 | Complete | 2026-05-10 |
+| 20. ML Monitoring & CI Hardening | v2.4 | 3/3 | Complete | 2026-05-10 |

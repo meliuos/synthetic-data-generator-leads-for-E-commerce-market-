@@ -9,7 +9,7 @@ else
     RETAILROCKET_PIP    ?= $(RETAILROCKET_VENV)/bin/pip
 endif
 
-.PHONY: validate up down logs ps schema schema-v11 schema-retailrocket schema-v12 schema-phase10 schema-phase11 smoke-test smoke-test-v11 smoke-test-v12 smoke-test-phase10 smoke-test-phase11 score-sessions ml-setup retailrocket-setup retailrocket-download retailrocket-import retailrocket-smoke retailrocket-reload synth-setup schema-phase13 smoke-test-phase13 ctgan-train generate-synthetic sim-setup simulate smoke-test-sim ai-setup schema-ai test-ai schema-phase17 predict-product test-predictor build-augmented-dataset train-augmented select-model test-registry
+.PHONY: validate up down logs ps schema schema-v11 schema-retailrocket schema-v12 schema-phase10 schema-phase11 smoke-test smoke-test-v11 smoke-test-v12 smoke-test-phase10 smoke-test-phase11 score-sessions ml-setup retailrocket-setup retailrocket-download retailrocket-import retailrocket-smoke retailrocket-reload synth-setup schema-phase13 smoke-test-phase13 ctgan-train generate-synthetic sim-setup simulate smoke-test-sim ai-setup schema-ai test-ai schema-phase17 predict-product test-predictor build-augmented-dataset train-augmented select-model test-registry api-up api-down api-test test-api schema-phase20 check-drift console-up lint
 
 validate:
 	$(COMPOSE) config >/dev/null
@@ -245,3 +245,40 @@ select-model:
 
 test-registry:
 	$(ML_PYTHON) -m pytest tests/test_model_registry.py -v
+
+# ---------------------------------------------------------------------------
+# Phase 19 — Prediction REST API Service
+# ---------------------------------------------------------------------------
+
+API_URL ?= http://localhost:8000
+
+api-up:
+	$(COMPOSE) up -d --build prediction-api
+
+api-down:
+	$(COMPOSE) stop prediction-api
+
+api-test:
+	curl -s -X POST $(API_URL)/predict/product \
+	  -H "Content-Type: application/json" \
+	  -d '{"product_name":"Test Product","category":"1051","price":29.99,"keywords":"test","n_sessions":200}' \
+	  | python -c "import sys,json; d=json.load(sys.stdin); assert 'conversion_rate_pct' in d and 'tier_distribution' in d, d; print('API test PASSED. conversion_rate_pct='+str(d['conversion_rate_pct'])+'%')"
+
+test-api:
+	$(ML_PYTHON) -m pytest tests/test_prediction_api.py -v
+
+# ---------------------------------------------------------------------------
+# Phase 20 — ML Monitoring & CI Hardening
+# ---------------------------------------------------------------------------
+
+schema-phase20:
+	bash scripts/apply-schema.sh infra/clickhouse/sql/010_drift_log.sql
+
+check-drift:
+	$(SYNTH_PYTHON) scripts/check_model_drift.py
+
+console-up:
+	$(COMPOSE) up -d redpanda-console
+
+lint:
+	ruff check src/ scripts/ tests/

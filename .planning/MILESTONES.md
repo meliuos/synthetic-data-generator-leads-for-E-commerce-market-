@@ -161,52 +161,48 @@ All v1.2 requirements shipped: LEAD-01 (session features), LEAD-02 (lead dashboa
 
 ---
 
-## v2.3 — ML Pipeline Hardening (In Progress)
+## v2.3 — ML Pipeline Hardening
 
-**Status:** Phase 18 COMPLETE — Phase 19 pending
-**Target:** After Phase 19 ships
+**Status:** Complete
+**Shipped:** 2026-05-10
 **Phases:** 18–19
 
-### What Shipped (Phase 18)
+### What Shipped
 
 - **Phase 18 — Augmented Training Pipeline** — `scripts/build_augmented_dataset.py` exports real Retailrocket + CTGAN synthetic sessions, aligns `_FEATURE_COLS`, labels `converted`, stratified 80/20 split to `data/augmented_{training,test}.parquet`. `notebooks/augmented_training.ipynb` 7-cell notebook: load → v1 baseline recall → LightGBM v2 5-fold CV → v1 vs v2 comparison (5pp Recall@K target) → feature importance delta chart → save `models/lead_scorer_lgbm_v2.pkl` → model card export to `docs/model_card_v2.md`. `src/scoring/model_registry.py` with `get_active_version()`, `get_active_model_path()`, `set_active_model()`. `MLScorer` updated to use registry as default (backwards-compatible). `models/ACTIVE_MODEL` committed (initial: `v1`). 20 unit tests passing.
+- **Phase 19 — Prediction REST API Service** — FastAPI service (`src/api/main.py`) with lifespan model loading, `POST /predict/product`, `GET /health`, `GET /predictions/history`, `GET /models/active`. Pydantic v2 request/response schemas with field validators. `Dockerfile.api` + `prediction-api` Docker Compose service (port 8000, `./models:/app/models:ro` volume, `start_period: 60s` healthcheck). `dashboard/pages/predict.py` rewritten to call API via `PREDICTION_API_URL` env var — no direct CTGAN/LightGBM imports in dashboard. 26 unit tests with TestClient + mocked lifespan dependencies.
 
-### Planned (Phase 19)
-
-- **Phase 19 — Prediction REST API Service** — FastAPI service (`src/api/main.py`) in Docker Compose exposing `POST /predict/product`, `GET /health`, `GET /predictions/history`. The Streamlit predict page (Phase 17) calls the API instead of importing the predictor directly. Prediction history expander added to the predict page.
-
-### Entry Point for Phase 19
-
-Phase 19. Requires Phase 18 model versioning in place.
-
-### Key Decisions (Phase 18)
+### Key Decisions
 
 | Date | Decision | Outcome |
 |------|----------|---------|
 | 2026-05-10 | `models/ACTIVE_MODEL` is plain-text committed to git | Config, not artifact — safe to commit; `models/*.pkl` remain gitignored |
-| 2026-05-10 | `MLScorer(model_version="v2")` kwarg resolves via registry; explicit `model_path=` still works | Zero breakage to existing callers (score_sessions.py, product_predictor.py) |
-| 2026-05-10 | Synthetic table fetch in dataset builder is non-fatal (logs warning, continues with real only) | `make build-augmented-dataset` works even before `make generate-synthetic` runs |
+| 2026-05-10 | `MLScorer(model_version="v2")` kwarg resolves via registry; explicit `model_path=` still works | Zero breakage to existing callers |
+| 2026-05-10 | Synthetic table fetch in dataset builder is non-fatal | `make build-augmented-dataset` works before `make generate-synthetic` runs |
+| 2026-05-10 | FastAPI lifespan patched as no-op in tests; prediction patched at source module | Avoids SDV/CTGAN import in CI; test isolation clean |
+| 2026-05-10 | Dashboard predict page calls API over HTTP; no ML imports in Streamlit process | Streamlit event loop stays unblocked; inference isolated to API container |
 
 ---
 
-## v2.4 — Production Monitoring & CI (Planned)
+## v2.4 — Production Monitoring & CI
 
-**Status:** Pending
-**Target:** After v2.3
+**Status:** Complete
+**Shipped:** 2026-05-10
 **Phases:** 20
 
-### Planned Scope
+### What Shipped
 
-- **Phase 20 — ML Monitoring & CI Hardening** — `src/monitoring/drift_detector.py` with Jensen-Shannon divergence per feature between real and synthetic distributions. `analytics.drift_log` ClickHouse table. Model Health panel in Streamlit admin sidebar. Redpanda Console container for consumer-lag observability. ClickHouse slow-query panel in sidebar. GitHub Actions CI pipeline (lint + unit-tests + docker-build).
+- **Phase 20 — ML Monitoring & CI Hardening** — `src/monitoring/drift_detector.py` with `compute_feature_jsd()` (scipy JSD, 50-bin histogram with Laplace smoothing) and `check_drift()` returning `DriftReport` (ok/warn/fail bands at 0.10/0.15). `scripts/check_model_drift.py` CLI exits 1 on fail. `analytics.drift_log` ClickHouse table (`infra/clickhouse/sql/010_drift_log.sql`). `dashboard/drift_panel.py` self-contained module with `render_model_health_sidebar()` (status badge, JSD bar chart) and `render_slow_query_sidebar()` (system.query_log top 10 > 500 ms). Both panels wired into `dashboard/app.py` sidebar. `redpanda-console` service in Docker Compose (port 9080, zero-code Kafka consumer lag UI). `.github/workflows/ci.yml` with three jobs: `lint` (ruff), `unit-tests` (pytest), `docker-build`. `requirements.txt` (root, for CI), `requirements-dev.txt` (ruff, pytest, scipy). `make` targets: `schema-phase20`, `check-drift`, `console-up`, `lint`.
 
-### Entry Point
+### Key Decisions
 
-Phase 20, after the full Docker Compose stack (including Phase 19 `prediction-api`) is stable.
-
-### Why This Milestone Exists
-
-After v2.3, the system is functionally complete but operationally blind: no visibility into model drift, pipeline failures, or code regressions. This milestone closes those gaps with minimal effort (Redpanda Console is a zero-code Docker service addition; GitHub Actions adds automated test execution) and makes the system handoff-ready.
+| Date | Decision | Outcome |
+|------|----------|---------|
+| 2026-05-10 | `dashboard/drift_panel.py` self-contained (no `src/` import) | Dashboard Docker image build context is `./dashboard` — can't reference `src/` without changing context |
+| 2026-05-10 | Redpanda Console on port 9080 (not 8080) | 8080 already bound to RudderStack; 9080 avoids conflict |
+| 2026-05-10 | Root `requirements.txt` covers test deps; heavy ML in `requirements-ml.txt` | SDV/CTGAN mocked in tests — not installed in CI; avoids 10-min install on every push |
+| 2026-05-10 | JSD via `jensenshannon(p, q)**2` with Laplace-smoothed shared histogram | scipy returns JS distance, not JSD; squaring recovers JSD ∈ [0,1]; smoothing avoids log(0) |
 
 ---
 
-*Last updated: 2026-05-08 — v2.3 (ML Pipeline Hardening) and v2.4 (Production Monitoring & CI) milestones added.*
+*Last updated: 2026-05-10 — v2.4 complete. All phases (1–20) shipped.*

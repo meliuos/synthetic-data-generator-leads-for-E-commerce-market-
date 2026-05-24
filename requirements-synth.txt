@@ -10,3 +10,6 @@ clickhouse-connect>=0.7.0
 jupyter>=1.0.0
 nbconvert>=7.0.0
 ipykernel>=6.0.0
+# Phase 17: prediction pipeline needs LightGBM for MLScorer
+lightgbm>=4.3.0
+scikit-learn>=1.4.0

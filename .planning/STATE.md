@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-04-18)
 
 **Core value:** Capture user behavior signals that identify purchase-intent leads for an e-commerce site — heatmap engagement plus e-commerce intent events — backed by a scalable real-time event pipeline.
-**Current focus:** v2.3 ML Pipeline Hardening — Phases 17 and 18 shipped; Phase 19 (Prediction REST API) is next.
+**Current focus:** ALL PHASES COMPLETE — v2.4 shipped (2026-05-10).
 
 ## Current Position
 
-Milestone: **v2.3 IN PROGRESS** — Phase 18 (Augmented Training Pipeline) complete
-Phase: Phase 18 COMPLETE (3/3 plans shipped, 2026-05-10)
-Plan: 18-01 (dataset builder), 18-02 (training notebook), 18-03 (model registry) — all COMPLETE
-Status: Augmented dataset builder, LightGBM v2 training notebook, model registry, and ACTIVE_MODEL versioning all live. Phase 17 (Product Prediction Interface) also complete.
-Last activity: 2026-05-10 — Phases 17 and 18 implemented
+Milestone: **v2.4 COMPLETE** — All phases 1–20 shipped
+Phase: Phase 20 COMPLETE (3/3 plans shipped, 2026-05-10)
+Plan: 20-01 (drift monitoring), 20-02 (observability), 20-03 (CI) — all COMPLETE
+Status: Full system shipped. CTGAN synthetic data, Mesa simulation, Ollama LLM scripts, Product Prediction API, augmented LightGBM model, JSD drift monitoring, Redpanda Console, GitHub Actions CI.
+Last activity: 2026-05-10 — Phase 20 implemented
 
-Progress: v1.0 complete (13/13 plans); v1.1 complete (6/6 plans); v1.2 COMPLETE (4/4 phases); v2.0–v2.2 COMPLETE (Phases 13–17); v2.3 Phase 18 COMPLETE.
+Progress: v1.0–v2.4 ALL COMPLETE (Phases 1–20 shipped).
 
 ██████████████████████████████████████████████████ (v1.2: ALL PHASES COMPLETE)
 

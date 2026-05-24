@@ -1,13 +1,13 @@
 """
-Phase 17 — Product Input & Lead Prediction Interface.
+Phase 17 + 19 — Product Input & Lead Prediction Interface.
 
-Samples N synthetic behavioral sessions from the CTGAN model conditioned on a
-product category, scores them with the LightGBM MLScorer, and presents:
-  - Conversion rate metric
-  - Tier distribution pie chart
-  - Feature importance bar chart
-  - Top-10 session table
-  - Prediction history from analytics.prediction_log
+Phase 17: Streamlit form → prediction results display.
+Phase 19: Calls the prediction-api REST service instead of importing
+          CTGAN/LightGBM directly, keeping the dashboard process lean.
+
+Environment variables:
+    PREDICTION_API_URL   default: http://localhost:8000
+                         Set to http://prediction-api:8000 in Docker Compose.
 
 Accessible at the "Predict" entry in the Streamlit sidebar navigation.
 """
@@ -15,7 +15,6 @@ Accessible at the "Predict" entry in the Streamlit sidebar navigation.
 from __future__ import annotations
 
 import os
-import sys
 from pathlib import Path
 
 import pandas as pd
@@ -24,21 +23,19 @@ import streamlit as st
 st.set_page_config(page_title="Predict — Product Lead Predictor", layout="wide")
 
 # ---------------------------------------------------------------------------
-# Repo root on sys.path so src/prediction is importable
+# API configuration
 # ---------------------------------------------------------------------------
 
-_REPO_ROOT = Path(__file__).parent.parent.parent
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
+_API_URL = os.getenv("PREDICTION_API_URL", "http://localhost:8000").rstrip("/")
 
 # ---------------------------------------------------------------------------
-# ClickHouse connection
+# ClickHouse connection (categories only — prediction + history via API)
 # ---------------------------------------------------------------------------
 
-CLICKHOUSE_HOST = os.getenv("CLICKHOUSE_HOST", "localhost")
-CLICKHOUSE_PORT = int(os.getenv("CLICKHOUSE_PORT", "8123"))
-CLICKHOUSE_DB = os.getenv("CLICKHOUSE_DB", "analytics")
-CLICKHOUSE_USER = os.getenv("CLICKHOUSE_USER", "analytics")
+CLICKHOUSE_HOST     = os.getenv("CLICKHOUSE_HOST", "localhost")
+CLICKHOUSE_PORT     = int(os.getenv("CLICKHOUSE_PORT", "8123"))
+CLICKHOUSE_DB       = os.getenv("CLICKHOUSE_DB", "analytics")
+CLICKHOUSE_USER     = os.getenv("CLICKHOUSE_USER", "analytics")
 CLICKHOUSE_PASSWORD = os.getenv("CLICKHOUSE_PASSWORD", "analytics_password")
 
 
@@ -55,15 +52,73 @@ def _get_client():
 
 
 # ---------------------------------------------------------------------------
-# Data helpers
+# API helpers
+# ---------------------------------------------------------------------------
+
+def _api_predict(
+    product_name: str,
+    category: str,
+    price: float,
+    keywords: str,
+    n_sessions: int,
+) -> dict:
+    """
+    POST /predict/product and return the parsed JSON response dict.
+    Raises requests.HTTPError on non-2xx status.
+    """
+    import requests
+
+    resp = requests.post(
+        f"{_API_URL}/predict/product",
+        json={
+            "product_name": product_name,
+            "category": category,
+            "price": price,
+            "keywords": keywords,
+            "n_sessions": n_sessions,
+        },
+        timeout=120,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _api_history(limit: int = 5) -> list[dict]:
+    """GET /predictions/history and return list of prediction dicts."""
+    import requests
+
+    try:
+        resp = requests.get(
+            f"{_API_URL}/predictions/history",
+            params={"limit": limit},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        return resp.json()
+    except Exception:
+        return []
+
+
+def _api_health() -> dict | None:
+    """GET /health — returns None if the API is unreachable."""
+    import requests
+
+    try:
+        resp = requests.get(f"{_API_URL}/health", timeout=5)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception:
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Category list (still fetched from ClickHouse — lightweight lookup)
 # ---------------------------------------------------------------------------
 
 @st.cache_data(ttl=300, show_spinner=False)
 def _fetch_categories() -> list[str]:
-    """Return top-50 category IDs ordered by event volume."""
     try:
-        client = _get_client()
-        result = client.query(
+        result = _get_client().query(
             """
             SELECT toString(category_id) AS cat_id
             FROM analytics.category_tree
@@ -77,76 +132,11 @@ def _fetch_categories() -> list[str]:
         return ["1051", "1052", "1053"]
 
 
-def _fetch_prediction_log(client) -> pd.DataFrame:
-    try:
-        result = client.query(
-            """
-            SELECT
-                product_name,
-                category,
-                price,
-                n_sessions_sampled,
-                conversion_rate_pct,
-                tier_hot_pct,
-                tier_warm_pct,
-                tier_cold_pct,
-                used_conditional,
-                predicted_at
-            FROM analytics.prediction_log
-            ORDER BY predicted_at DESC
-            LIMIT 20
-            """
-        )
-        return pd.DataFrame(result.result_rows, columns=result.column_names)
-    except Exception:
-        return pd.DataFrame()
-
-
-def _run_prediction(category: str, price: float, keywords: str, n_sessions: int,
-                    model_path: Path):
-    """Lazy-import predict_for_product to avoid heavy deps at module load time."""
-    from src.prediction.product_predictor import predict_for_product
-    return predict_for_product(
-        category=category,
-        price=price,
-        keywords=keywords,
-        n_sessions=n_sessions,
-        model_path=model_path,
-    )
-
-
-def _log_prediction(client, product_name: str, result, price: float, keywords: str) -> None:
-    try:
-        client.insert(
-            "analytics.prediction_log",
-            [[
-                product_name,
-                result.category,
-                float(price),
-                keywords,
-                result.n_sessions_sampled,
-                result.conversion_rate_pct,
-                result.tier_distribution_pct.get("hot", 0.0),
-                result.tier_distribution_pct.get("warm", 0.0),
-                result.tier_distribution_pct.get("cold", 0.0),
-                int(result.used_conditional),
-            ]],
-            column_names=[
-                "product_name", "category", "price", "keywords",
-                "n_sessions_sampled", "conversion_rate_pct",
-                "tier_hot_pct", "tier_warm_pct", "tier_cold_pct",
-                "used_conditional",
-            ],
-        )
-    except Exception:
-        pass  # log failure is non-fatal
-
-
 # ---------------------------------------------------------------------------
 # Charts
 # ---------------------------------------------------------------------------
 
-def _tier_pie(tier_pct: dict[str, float]):
+def _tier_pie(tier_pct: dict):
     import plotly.graph_objects as go
     colors = {"hot": "#ef4444", "warm": "#f97316", "cold": "#60a5fa"}
     labels = list(tier_pct.keys())
@@ -170,12 +160,9 @@ def _tier_pie(tier_pct: dict[str, float]):
 def _feature_bar(top_features: list[dict]):
     import plotly.graph_objects as go
     names = [f["name"] for f in top_features]
-    vals = [f["importance"] for f in top_features]
+    vals  = [f["importance"] for f in top_features]
     fig = go.Figure(go.Bar(
-        x=vals,
-        y=names,
-        orientation="h",
-        marker_color="#6366f1",
+        x=vals, y=names, orientation="h", marker_color="#6366f1",
     ))
     fig.update_layout(
         title="Top Feature Importances",
@@ -188,44 +175,63 @@ def _feature_bar(top_features: list[dict]):
 
 
 # ---------------------------------------------------------------------------
-# Page layout
+# Page header + API status banner
 # ---------------------------------------------------------------------------
 
 st.title("Product Lead Predictor")
 st.caption(
     "Enter product details to sample synthetic behavioral sessions from the CTGAN model "
-    "and estimate lead conversion likelihood."
+    "and estimate lead conversion likelihood. Predictions are served by the ML API service."
 )
 
-categories = _fetch_categories()
+health = _api_health()
+if health is None:
+    st.warning(
+        f"Prediction API unreachable at **{_API_URL}**. "
+        "Run `make api-up` to start it, or set `PREDICTION_API_URL` to the correct address. "
+        "The form is disabled until the API responds."
+    )
+    _api_ready = False
+else:
+    ch_icon = "✅" if health.get("clickhouse") == "ok" else "⚠️"
+    st.sidebar.success(
+        f"API online — model: `{health.get('active_model', '?')}` {ch_icon} ClickHouse"
+    )
+    _api_ready = True
 
 # ---------------------------------------------------------------------------
 # Input form
 # ---------------------------------------------------------------------------
 
+categories = _fetch_categories()
+
 with st.form("predict_form"):
     col_left, col_right = st.columns(2)
 
     with col_left:
-        product_name = st.text_input("Product name", placeholder="e.g. Wireless Headphones")
+        product_name = st.text_input("Product name",
+                                     placeholder="e.g. Wireless Headphones",
+                                     disabled=not _api_ready)
         category = st.selectbox("Category", options=categories,
-                                help="Category ID from the product taxonomy")
-        price = st.number_input("Price (USD)", min_value=0.01, value=29.99, step=0.01,
-                                format="%.2f")
+                                help="Category ID from the product taxonomy",
+                                disabled=not _api_ready)
+        price = st.number_input("Price (USD)", min_value=0.01, value=29.99,
+                                step=0.01, format="%.2f", disabled=not _api_ready)
 
     with col_right:
         keywords = st.text_input("Keywords (comma-separated)",
-                                 placeholder="e.g. audio,bluetooth,noise-cancelling")
+                                 placeholder="e.g. audio,bluetooth,noise-cancelling",
+                                 disabled=not _api_ready)
         n_sessions = st.slider("Synthetic sessions to sample", min_value=100,
-                               max_value=5000, value=1000, step=100)
-        model_path = st.text_input("CTGAN model path",
-                                   value="models/ctgan_sessions.pkl",
-                                   help="Relative to repo root; run 'make ctgan-train' first")
+                               max_value=5000, value=1000, step=100,
+                               disabled=not _api_ready)
 
-    submitted = st.form_submit_button("Run Prediction", type="primary")
+    submitted = st.form_submit_button(
+        "Run Prediction", type="primary", disabled=not _api_ready
+    )
 
 # ---------------------------------------------------------------------------
-# Run prediction
+# Run prediction via API
 # ---------------------------------------------------------------------------
 
 if submitted:
@@ -233,27 +239,33 @@ if submitted:
         st.warning("Please enter a product name.")
         st.stop()
 
-    _model_path = _REPO_ROOT / model_path
-
-    with st.spinner(f"Sampling {n_sessions:,} sessions for category {category}…"):
+    with st.spinner(f"Generating predictions via ML service ({n_sessions:,} sessions)…"):
         try:
-            result = _run_prediction(
+            data = _api_predict(
+                product_name=product_name,
                 category=category,
                 price=price,
                 keywords=keywords,
                 n_sessions=n_sessions,
-                model_path=_model_path,
             )
-        except FileNotFoundError as exc:
-            st.error(str(exc))
-            st.stop()
         except Exception as exc:
-            st.error(f"Prediction failed: {exc}")
+            error_msg = str(exc)
+            try:
+                import requests
+                if hasattr(exc, "response") and exc.response is not None:
+                    detail = exc.response.json().get("detail", error_msg)
+                    error_msg = detail
+            except Exception:
+                pass
+            st.error(f"Prediction API error: {error_msg}")
             st.stop()
 
-    st.success(f"Prediction complete — {result.n_sessions_sampled:,} sessions sampled.")
+    st.success(
+        f"Prediction complete — {data['n_sessions_sampled']:,} sessions sampled "
+        f"(model: `{data.get('model_version', '?')}`)."
+    )
 
-    if not result.used_conditional:
+    if not data.get("used_conditional_sampling", True):
         st.warning(
             f"Category **{category}** was not seen during CTGAN training. "
             "Unconditional sampling was used — results are indicative only."
@@ -263,11 +275,12 @@ if submitted:
     # Metrics row
     # -------------------------------------------------------------------------
 
+    tier_pct = data.get("tier_distribution_pct", {})
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Conversion rate", f"{result.conversion_rate_pct:.1f}%")
-    m2.metric("🔥 Hot leads", f"{result.tier_distribution_pct.get('hot', 0):.1f}%")
-    m3.metric("🌡️ Warm leads", f"{result.tier_distribution_pct.get('warm', 0):.1f}%")
-    m4.metric("❄️ Cold leads", f"{result.tier_distribution_pct.get('cold', 0):.1f}%")
+    m1.metric("Conversion rate", f"{data['conversion_rate_pct']:.1f}%")
+    m2.metric("🔥 Hot leads",  f"{tier_pct.get('hot',  0):.1f}%")
+    m3.metric("🌡️ Warm leads", f"{tier_pct.get('warm', 0):.1f}%")
+    m4.metric("❄️ Cold leads", f"{tier_pct.get('cold', 0):.1f}%")
 
     # -------------------------------------------------------------------------
     # Charts
@@ -275,49 +288,49 @@ if submitted:
 
     chart_left, chart_right = st.columns(2)
     with chart_left:
-        st.plotly_chart(_tier_pie(result.tier_distribution_pct), use_container_width=True)
+        st.plotly_chart(_tier_pie(tier_pct), use_container_width=True)
     with chart_right:
-        if result.top_features:
-            st.plotly_chart(_feature_bar(result.top_features), use_container_width=True)
+        top_features = data.get("top_features", [])
+        if top_features:
+            st.plotly_chart(_feature_bar(top_features), use_container_width=True)
         else:
-            st.info("Feature importances unavailable — ML model not loaded.")
+            st.info("Feature importances unavailable.")
 
     # -------------------------------------------------------------------------
     # Top sessions table
     # -------------------------------------------------------------------------
 
     st.subheader("Top 10 Sessions by Score")
-    display_df = result.sample_sessions.copy()
-    if "ml_lead_score" in display_df.columns:
-        display_df["ml_lead_score"] = display_df["ml_lead_score"].map("{:.3f}".format)
-    st.dataframe(display_df, use_container_width=True)
+    sessions = data.get("sample_sessions", [])
+    if sessions:
+        display_df = pd.DataFrame(sessions)
+        if "ml_lead_score" in display_df.columns:
+            display_df["ml_lead_score"] = display_df["ml_lead_score"].map("{:.3f}".format)
+        st.dataframe(display_df, use_container_width=True)
+    else:
+        st.info("No session data returned.")
 
-    # -------------------------------------------------------------------------
-    # Log to ClickHouse (best-effort)
-    # -------------------------------------------------------------------------
-
-    try:
-        _log_prediction(_get_client(), product_name, result, price, keywords)
-    except Exception:
-        pass
+    st.caption(
+        "Disclaimer: predictions are estimates over synthetic data — not guaranteed outcomes."
+    )
 
 # ---------------------------------------------------------------------------
-# Prediction history
+# Prediction History expander (via API)
 # ---------------------------------------------------------------------------
 
 st.divider()
-st.subheader("Prediction History")
 
-try:
-    history_df = _fetch_prediction_log(_get_client())
-except Exception as exc:
-    st.warning(f"Could not load prediction history: {exc}")
-    history_df = pd.DataFrame()
-
-if history_df.empty:
-    st.info(
-        "No predictions logged yet. "
-        "Apply the schema first: `make schema-phase17`, then run a prediction."
-    )
-else:
-    st.dataframe(history_df, use_container_width=True)
+with st.expander("Prediction History (last 5)", expanded=False):
+    history = _api_history(limit=5)
+    if history:
+        hist_df = pd.DataFrame(history)
+        if "predicted_at" in hist_df.columns:
+            hist_df["predicted_at"] = pd.to_datetime(hist_df["predicted_at"]).dt.strftime(
+                "%Y-%m-%d %H:%M"
+            )
+        st.dataframe(hist_df, use_container_width=True)
+    else:
+        st.info(
+            "No predictions logged yet, or the API is unreachable. "
+            "Run a prediction above to populate this panel."
+        )

@@ -1,0 +1,16 @@
+# Root requirements — covers unit-test dependencies across all test modules.
+# Heavy ML deps (lightgbm, scikit-learn) are in requirements-ml.txt.
+# SDV/CTGAN (requirements-synth.txt) are not needed for tests — they are mocked.
+
+pandas>=2.0.0
+numpy>=1.26.0
+joblib>=1.3.0
+clickhouse-connect>=0.7.0
+requests>=2.31.0
+fastapi>=0.111.0
+pydantic>=2.0.0
+uvicorn[standard]>=0.29.0
+httpx>=0.27.0
+pytest>=8.0.0
+scipy>=1.12.0
+Jinja2>=3.1.0
