@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import logging
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -15,7 +16,9 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Screenshot Service", version="1.0.0")
 
-SCREENSHOTS_DIR = Path("/screenshots")
+# Default to /screenshots for Docker, otherwise resolve to the local project's screenshots folder natively
+_default_screenshots = "/screenshots" if Path("/screenshots").exists() else Path(__file__).parent.parent.parent / "screenshots"
+SCREENSHOTS_DIR = Path(os.getenv("SCREENSHOTS_DIR", _default_screenshots))
 SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
 
 VIEWPORTS = {

@@ -5,6 +5,10 @@ __pycache__/
 .venv-phase4/
 .venv-retailrocket/
 .venv-ml/
+.venv-screenshot/
+.venv-api/
+.venv-dash/
+
 
 # ML model artifacts (regenerate with: make ml-setup && make score-sessions)
 models/*.pkl

@@ -297,9 +297,9 @@ def build_lead_candidates_query(
 
     sql = """
     SELECT
-        r.session_id,
-        r.anonymous_user_id,
-        r.source,
+        r.session_id AS session_id,
+        r.anonymous_user_id AS anonymous_user_id,
+        r.source AS source,
         r.lead_score                                   AS rule_score,
         r.score_tier,
         m.ml_lead_score,
