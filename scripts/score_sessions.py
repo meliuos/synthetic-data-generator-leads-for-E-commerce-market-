@@ -75,7 +75,7 @@ FROM analytics.session_features
 
 _INSERT_SCORES = """
 INSERT INTO analytics.lead_scores_ml
-    (session_id, anonymous_user_id, source, ml_lead_score, model_version)
+    (session_id, anonymous_user_id, source, ml_lead_score, ml_score_tier, model_version)
 VALUES
 """
 
@@ -96,6 +96,7 @@ def _insert_batch(client, batch: pd.DataFrame, model_version: str) -> None:
             row["anonymous_user_id"],
             row["source"],
             float(row["ml_lead_score"]),
+            row["ml_score_tier"],
             model_version,
         )
         for _, row in batch.iterrows()
@@ -103,7 +104,7 @@ def _insert_batch(client, batch: pd.DataFrame, model_version: str) -> None:
     client.insert(
         "analytics.lead_scores_ml",
         rows,
-        column_names=["session_id", "anonymous_user_id", "source", "ml_lead_score", "model_version"],
+        column_names=["session_id", "anonymous_user_id", "source", "ml_lead_score", "ml_score_tier", "model_version"],
     )
 
 
@@ -125,10 +126,11 @@ def score_sessions(
 
     print("Scoring …")
     df["ml_lead_score"] = scorer.predict(df)
+    df["ml_score_tier"] = scorer.score_tier(df["ml_lead_score"] * 100)
 
     if dry_run:
         print("[dry-run] Sample scores (first 10 rows):")
-        cols = ["session_id", "source", "ml_lead_score"]
+        cols = ["session_id", "source", "ml_lead_score", "ml_score_tier"]
         print(df[cols].head(10).to_string(index=False))
         print(f"[dry-run] Would insert {len(df):,} rows into analytics.lead_scores_ml.")
         return

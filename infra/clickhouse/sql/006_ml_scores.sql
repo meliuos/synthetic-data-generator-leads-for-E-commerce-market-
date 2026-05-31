@@ -35,8 +35,13 @@ CREATE TABLE IF NOT EXISTS analytics.lead_scores_ml
     anonymous_user_id   String,
     source              LowCardinality(String),
     ml_lead_score       Float32,           -- calibrated probability [0, 1]
+    ml_score_tier       LowCardinality(String) DEFAULT 'cold',  -- 'hot' / 'warm' / 'cold' (same thresholds as rule engine)
     model_version       String,            -- e.g. 'lgbm_v1'
     scored_at           DateTime DEFAULT now()
 )
 ENGINE = ReplacingMergeTree(scored_at)
 ORDER BY (source, anonymous_user_id, session_id);
+
+-- Idempotent backfill for tables that pre-date the ml_score_tier column.
+ALTER TABLE analytics.lead_scores_ml
+    ADD COLUMN IF NOT EXISTS ml_score_tier LowCardinality(String) DEFAULT 'cold' AFTER ml_lead_score;

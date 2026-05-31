@@ -241,14 +241,18 @@ st.write("---")
 # Ranked leads table
 # ---------------------------------------------------------------------------
 
+if "ml_score_tier" not in df.columns:
+    df["ml_score_tier"] = None
+
 DISPLAY_COLS = [
-    "anonymous_user_id", "source", "score_tier", "rule_score", "ml_score",
+    "anonymous_user_id", "source", "score_tier", "ml_score_tier", "rule_score", "ml_score",
     "product_views", "add_to_cart_count", "cart_abandoned", "duration", "rules_fired",
 ]
 COLUMN_CONFIG = {
     "anonymous_user_id": st.column_config.TextColumn("User ID"),
     "source":            st.column_config.TextColumn("Source"),
-    "score_tier":        st.column_config.TextColumn("Tier", help="hot ≥ 60 · warm ≥ 30 · cold < 30"),
+    "score_tier":        st.column_config.TextColumn("Rule tier", help="From rule engine · hot ≥ 60 · warm ≥ 30 · cold < 30"),
+    "ml_score_tier":     st.column_config.TextColumn("ML tier", help="From ML score · same thresholds applied to ml_lead_score × 100"),
     "rule_score":        st.column_config.NumberColumn("Rule score", min_value=0, max_value=100),
     "ml_score":          st.column_config.NumberColumn("ML score", min_value=0, max_value=100, format="%.1f"),
     "product_views":     st.column_config.NumberColumn("Product views"),
@@ -266,7 +270,8 @@ st.dataframe(
 )
 
 csv_cols = [
-    "session_id", "anonymous_user_id", "source", "score_tier", "rule_score", "ml_score",
+    "session_id", "anonymous_user_id", "source", "score_tier", "ml_score_tier",
+    "rule_score", "ml_score",
     "product_views", "add_to_cart_count", "cart_abandoned", "session_duration_seconds",
     "rules_fired", "first_event_at", "last_event_at",
 ]

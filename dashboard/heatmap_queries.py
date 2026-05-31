@@ -303,6 +303,7 @@ def build_lead_candidates_query(
         r.lead_score                                   AS rule_score,
         r.score_tier,
         m.ml_lead_score,
+        m.ml_score_tier,
         r.rule_add_to_cart,
         r.rule_purchase,
         r.rule_browsing_depth,
@@ -319,7 +320,7 @@ def build_lead_candidates_query(
     INNER JOIN analytics.session_features AS s
         ON r.session_id = s.session_id AND r.source = s.source
     LEFT JOIN (
-        SELECT session_id, ml_lead_score
+        SELECT session_id, ml_lead_score, ml_score_tier
         FROM analytics.lead_scores_ml FINAL
     ) AS m ON r.session_id = m.session_id
     WHERE r.score_tier IN %(tiers)s
