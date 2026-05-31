@@ -16,7 +16,9 @@
       "WebFetch(domain:tributarydata.substack.com)",
       "WebFetch(domain:www.fullstory.com)",
       "WebFetch(domain:www.fullsession.io)",
-      "WebFetch(domain:pypi.org)"
+      "WebFetch(domain:pypi.org)",
+      "Bash(docker compose *)",
+      "Bash(/home/mootez/Desktop/pfa/.venv-dash/bin/python -c ' *)"
     ]
   }
 }

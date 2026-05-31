@@ -2,7 +2,7 @@
 Phase 12 + 16 — Lead Identification Dashboard page.
 
 Phase 12: ranked leads table with rule + ML scores.
-Phase 16: per-lead AI script generation via Ollama/Qwen2.5:7b + script history panel.
+Phase 16: per-lead AI script generation via OpenRouter + script history panel.
 
 Accessible at the "Leads" entry in the Streamlit sidebar navigation.
 Requires ClickHouse to be running with:
@@ -153,7 +153,7 @@ st.caption(
     "Sessions ranked by purchase-intent score. "
     "Rule score = deterministic rule engine (Phase 10). "
     "ML score = LightGBM probability × 100 (Phase 11). "
-    "AI scripts powered by Ollama + Qwen2.5:7b (Phase 16)."
+    "AI scripts powered by OpenRouter free-tier LLM (Phase 16)."
 )
 
 with st.sidebar:
@@ -285,7 +285,7 @@ st.write("---")
 st.subheader("AI Sales Script Generator")
 st.caption(
     "Click **Generate Script** on any lead to create a personalised outreach script "
-    "using local Ollama inference (Qwen2.5:7b). Scripts are cached per session."
+    "via OpenRouter free-tier LLM. Set OPENROUTER_API_KEY in your environment to enable."
 )
 
 _MAX_SCRIPT_ROWS = 20
@@ -303,7 +303,7 @@ for _, row in script_rows.iterrows():
         script_key = f"script_{uid}"
 
         if st.button("Generate Script", key=f"Generate Script##{uid}"):
-            with st.spinner("Generating sales script via Ollama…"):
+            with st.spinner("Generating sales script via OpenRouter…"):
                 script_text = _call_build_script(uid)
             st.session_state[script_key] = script_text
 
@@ -326,8 +326,8 @@ for _, row in script_rows.iterrows():
                 if log_entry:
                     st.caption(
                         f"Model: `{log_entry['model']}` · "
-                        f"Prompt: {log_entry['prompt_chars']} chars · "
-                        f"Response: {log_entry['response_chars']} chars · "
+                        f"Prompt: {log_entry['prompt_tokens']} chars · "
+                        f"Response: {log_entry['output_tokens']} chars · "
                         f"Generated: {log_entry['generated_at']}"
                     )
 

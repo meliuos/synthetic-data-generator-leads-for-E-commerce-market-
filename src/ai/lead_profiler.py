@@ -63,8 +63,8 @@ def fetch_lead_context(anonymous_user_id: str) -> dict[str, Any]:
             ml.model_version,
             any(rb.lead_score)  AS rule_lead_score,
             any(rb.score_tier)  AS score_tier
-        FROM analytics.lead_scores_ml FINAL AS ml
-        LEFT JOIN analytics.lead_scores_rule_based AS rb
+        FROM analytics.lead_scores_ml AS ml FINAL
+        LEFT JOIN analytics.lead_scores_rule_based AS rb FINAL
             ON ml.anonymous_user_id = rb.anonymous_user_id
         WHERE ml.anonymous_user_id = {uid:String}
         GROUP BY ml.anonymous_user_id, ml.ml_lead_score, ml.model_version

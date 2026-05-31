@@ -7,8 +7,8 @@ Orchestrates: fetch_lead_context → build_prompt → generate_script → log to
 Never raises — returns a user-facing error string on any recoverable failure so the
 Streamlit dashboard cannot crash from a missing lead or inference error.
 
-Backend: Ollama (local inference, zero API cost).
-Configure via OLLAMA_HOST and LLM_MODEL environment variables.
+Backend: OpenRouter (free cloud inference — no local GPU required).
+Configure via OPENROUTER_API_KEY and LLM_MODEL environment variables.
 """
 
 from __future__ import annotations
@@ -48,7 +48,7 @@ def build_script(anonymous_user_id: str) -> str:
         log.warning("LLM timeout for %s: %s", anonymous_user_id, exc)
         return (
             "Script generation timed out. "
-            "Ensure Ollama is running: ollama serve && ollama pull qwen2.5:7b"
+            "Check your OPENROUTER_API_KEY and network connectivity."
         )
     except Exception as exc:
         log.exception("generate_script failed for %s", anonymous_user_id)

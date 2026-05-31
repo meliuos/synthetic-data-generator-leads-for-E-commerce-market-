@@ -19,10 +19,13 @@ from heatmap_queries import (
 )
 from heatmap_views import build_heatmap_figure_for_mode
 
-st.set_page_config(page_title="Lead Intelligence", layout="wide")
+st.set_page_config(page_title="Lead Intelligence", layout="wide", page_icon="🎯")
 
-st.title("Lead Intelligence Dashboard")
-st.caption("Real-time heatmap visualization for user interactions")
+st.title("🎯 Lead Intelligence Dashboard")
+st.caption(
+    "Real-time heatmap · ML lead scoring · AI sales scripts · "
+    "Use the sidebar to navigate between pages."
+)
 
 # Initialize session state
 if "screenshot_timestamp" not in st.session_state:
@@ -54,7 +57,7 @@ HEATMAP_MODES = {
     "Hover": "mousemove",
 }
 
-def capture_screenshot(url: str) -> dict:
+def capture_screenshot(url: str) -> dict | None:
     """Call screenshot service to capture URL at both viewports."""
     try:
         response = requests.post(
@@ -186,7 +189,7 @@ def render_heatmap_tab(
     try:
         figure = build_heatmap_figure_for_mode(
             event_type,
-            screenshot_path,
+            str(screenshot_path),
             dataframe,
             viewport_width,
             viewport_height,

@@ -112,24 +112,54 @@ def _api_health() -> dict | None:
 
 
 # ---------------------------------------------------------------------------
-# Category list (still fetched from ClickHouse — lightweight lookup)
 # ---------------------------------------------------------------------------
+# Category list — real Retailrocket category IDs, ranked by session popularity
+# ---------------------------------------------------------------------------
+#
+# Retailrocket's categories are anonymized integer IDs with no public label
+# dictionary, so we expose them as "Category <id> (<n> sessions)" ordered by
+# how often each was the modal product-view category in a real session. These
+# are exactly the IDs the CTGAN was trained on, so picking any of them
+# triggers the conditional-sampling path instead of the unconditional fallback.
+
+_TOP_CATEGORIES_LIMIT = 50
+
 
 @st.cache_data(ttl=300, show_spinner=False)
-def _fetch_categories() -> list[str]:
+def _fetch_categories() -> dict[str, str]:
+    """Return {label: category_id} dict — top retailrocket categories by sessions."""
     try:
         result = _get_client().query(
-            """
-            SELECT toString(category_id) AS cat_id
-            FROM analytics.category_tree
-            ORDER BY category_id
-            LIMIT 200
+            f"""
+            SELECT category_id, count() AS sessions
+            FROM (
+                SELECT
+                    topK(1)(toString(il.category_id))[1] AS category_id
+                FROM analytics.unified_events AS ue
+                INNER JOIN retailrocket_raw.item_latest AS il
+                    ON toUInt64OrZero(ue.product_id) = il.item_id
+                WHERE ue.source = 'retailrocket'
+                  AND ue.event_type = 'product_view'
+                  AND il.category_id IS NOT NULL
+                GROUP BY ue.session_id
+            )
+            GROUP BY category_id
+            ORDER BY sessions DESC
+            LIMIT {_TOP_CATEGORIES_LIMIT}
             """
         )
-        cats = [r[0] for r in result.result_rows]
-        return cats if cats else ["1051", "1052", "1053"]
+        merged: dict[str, str] = {}
+        for cat_id, sessions in result.result_rows:
+            label = f"Category {cat_id} ({sessions:,} sessions)"
+            merged[label] = str(cat_id)
+        if merged:
+            return merged
     except Exception:
-        return ["1051", "1052", "1053"]
+        pass
+
+    # Fallback if the retailrocket_raw tables aren't reachable — synthesize a
+    # minimal list from known popular IDs so the dropdown is never empty.
+    return {f"Category {cid}": cid for cid in ("1051", "1483", "491", "959", "342")}
 
 
 # ---------------------------------------------------------------------------
@@ -203,7 +233,8 @@ else:
 # Input form
 # ---------------------------------------------------------------------------
 
-categories = _fetch_categories()
+category_map = _fetch_categories()   # {label: id}
+category_labels = list(category_map.keys())
 
 with st.form("predict_form"):
     col_left, col_right = st.columns(2)
@@ -212,9 +243,10 @@ with st.form("predict_form"):
         product_name = st.text_input("Product name",
                                      placeholder="e.g. Wireless Headphones",
                                      disabled=not _api_ready)
-        category = st.selectbox("Category", options=categories,
-                                help="Category ID from the product taxonomy",
-                                disabled=not _api_ready)
+        selected_label = st.selectbox("Category", options=category_labels,
+                                      help="Product category for behavioral sampling",
+                                      disabled=not _api_ready)
+        category = category_map.get(selected_label, selected_label)
         price = st.number_input("Price (USD)", min_value=0.01, value=29.99,
                                 step=0.01, format="%.2f", disabled=not _api_ready)
 

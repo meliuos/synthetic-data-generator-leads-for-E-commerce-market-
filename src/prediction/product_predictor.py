@@ -199,8 +199,25 @@ def _assign_ids(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _coerce_feature_types(df: pd.DataFrame) -> pd.DataFrame:
+    """Cast CTGAN-sampled columns to the numeric types LightGBM expects."""
+    float_cols = ["max_scroll_pct", "session_duration_seconds"]
+    int_cols = [
+        "product_views", "add_to_cart_count", "distinct_products_viewed",
+        "search_count", "page_views", "purchase_count", "cart_abandoned",
+    ]
+    for col in float_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce").astype("float32")
+    for col in int_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype("int32")
+    return df
+
+
 def _score(df: pd.DataFrame) -> pd.DataFrame:
     """Apply MLScorer; handles missing model gracefully."""
+    df = _coerce_feature_types(df)
     try:
         scorer = _load_scorer()
         df["ml_lead_score"] = scorer.predict(df)
